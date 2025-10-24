@@ -1,0 +1,617 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Food Management System{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-graph-up me-3"></i>Analytics Dashboard</h1>
+                <p class="text-muted mb-0">Business insights and performance metrics</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="refreshDashboard()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                </button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#dateRangeModal">
+                    <i class="bi bi-calendar-range me-2"></i>Date Range
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Period Selector -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary active" onclick="changePeriod('today', this)">Today</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="changePeriod('week', this)">This Week</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="changePeriod('month', this)">This Month</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="changePeriod('quarter', this)">This Quarter</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="changePeriod('year', this)">This Year</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card revenue">
+                <div class="stats-content">
+                    <div class="stats-value" id="totalRevenue">${{ analytics_data.total_revenue or '0.00' }}</div>
+                    <div class="stats-label">Total Revenue</div>
+                    <div class="stats-trend">
+                        <span class="trend-indicator {{ 'positive' if (analytics_data.revenue_trend or 0) >= 0 else 'negative' }}">
+                            <i class="bi bi-arrow-{{ 'up' if (analytics_data.revenue_trend or 0) >= 0 else 'down' }}"></i>
+                            {{ "%.1f"|format(analytics_data.revenue_trend or 0) }}%
+                        </span>
+                        vs last period
+                    </div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card orders">
+                <div class="stats-content">
+                    <div class="stats-value" id="totalOrders">{{ analytics_data.total_orders or '0' }}</div>
+                    <div class="stats-label">Total Orders</div>
+                    <div class="stats-trend">
+                        <span class="trend-indicator {{ 'positive' if (analytics_data.orders_trend or 0) >= 0 else 'negative' }}">
+                            <i class="bi bi-arrow-{{ 'up' if (analytics_data.orders_trend or 0) >= 0 else 'down' }}"></i>
+                            {{ "%.1f"|format(analytics_data.orders_trend or 0) }}%
+                        </span>
+                        vs last period
+                    </div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-cart"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card customers">
+                <div class="stats-content">
+                    <div class="stats-value" id="avgOrderValue">${{ analytics_data.avg_order_value or '0.00' }}</div>
+                    <div class="stats-label">Avg Order Value</div>
+                    <div class="stats-trend">
+                        <span class="trend-indicator {{ 'positive' if (analytics_data.avg_trend or 0) >= 0 else 'negative' }}">
+                            <i class="bi bi-arrow-{{ 'up' if (analytics_data.avg_trend or 0) >= 0 else 'down' }}"></i>
+                            {{ "%.1f"|format(analytics_data.avg_trend or 0) }}%
+                        </span>
+                        vs last period
+                    </div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card profit">
+                <div class="stats-content">
+                    <div class="stats-value" id="profitMargin">{{ analytics_data.profit_margin or '0' }}%</div>
+                    <div class="stats-label">Profit Margin</div>
+                    <div class="stats-trend">
+                        <span class="trend-indicator {{ 'positive' if (analytics_data.margin_trend or 0) >= 0 else 'negative' }}">
+                            <i class="bi bi-arrow-{{ 'up' if (analytics_data.margin_trend or 0) >= 0 else 'down' }}"></i>
+                            {{ "%.1f"|format(analytics_data.margin_trend or 0) }}%
+                        </span>
+                        vs last period
+                    </div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Revenue Trend</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueTrendChart" height="300" 
+                            data-labels='{{ analytics_data.revenue_trend_labels | tojson if analytics_data.revenue_trend_labels else "[]" }}'
+                            data-values='{{ analytics_data.revenue_trend_data | tojson if analytics_data.revenue_trend_data else "[]" }}'></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Revenue by Category</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenuePieChart" height="300"
+                            data-labels='{{ analytics_data.category_labels | tojson if analytics_data.category_labels else "[\"No Data\"]" }}'
+                            data-values='{{ analytics_data.category_data | tojson if analytics_data.category_data else "[1]" }}'></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-clock me-2"></i>Sales by Hour</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="hourlyChart" height="250"
+                            data-values='{{ analytics_data.hourly_sales | tojson if analytics_data.hourly_sales else "[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]" }}'></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Sales by Day of Week</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyChart" height="250"
+                            data-values='{{ analytics_data.weekly_sales | tojson if analytics_data.weekly_sales else "[0,0,0,0,0,0,0]" }}'></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performers -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-star me-2"></i>Top Selling Items</h6>
+                </div>
+                <div class="card-body">
+                    {% if top_items %}
+                    <div class="list-group list-group-flush">
+                        {% for item in top_items[:10] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="ranking-badge">{{ loop.index }}</div>
+                                <div class="ms-3">
+                                    <h6 class="mb-1">{{ item.menu_item_name }}</h6>
+                                    {% if item.menu_item_arabic_name %}
+                                    <small class="text-muted" style="direction: rtl;">{{ item.menu_item_arabic_name }}</small><br>
+                                    {% endif %}
+                                    <small class="text-muted">{{ item.total_quantity }} sold</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success">${{ "%.2f"|format(item.total_revenue) }}</div>
+                                <small class="text-muted">{{ item.order_count }} orders</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No sales data available for the selected period.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-people me-2"></i>Staff Performance</h6>
+                </div>
+                <div class="card-body">
+                    {% if staff_performance %}
+                    <div class="list-group list-group-flush">
+                        {% for staff in staff_performance[:10] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="ranking-badge">{{ loop.index }}</div>
+                                <div class="ms-3">
+                                    <h6 class="mb-1">{{ staff.full_name }}</h6>
+                                    <small class="text-muted">{{ staff.orders_count }} orders</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success">${{ "%.2f"|format(staff.total_sales) }}</div>
+                                <small class="text-muted">Avg: ${{ "%.2f"|format(staff.avg_order) }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No staff performance data available.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="content-card">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Business Activity</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted">Latest Orders</h6>
+                    {% if recent_orders %}
+                    <div class="activity-list">
+                        {% for order in recent_orders[:5] %}
+                        <div class="activity-item">
+                            <div class="activity-icon bg-success">
+                                <i class="bi bi-cart-check"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Order #{{ order.id }}</div>
+                                <div class="activity-subtitle">
+                                    ${{ "%.2f"|format(order.total_amount) }} • {{ order.created_at.strftime('%I:%M %p') }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent orders</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted">Menu Updates</h6>
+                    {% if recent_menu_changes %}
+                    <div class="activity-list">
+                        {% for change in recent_menu_changes[:5] %}
+                        <div class="activity-item">
+                            <div class="activity-icon bg-info">
+                                <i class="bi bi-pencil"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">{{ change.item_name }}</div>
+                                <div class="activity-subtitle">
+                                    Price: ${{ "%.2f"|format(change.old_price) }} → ${{ "%.2f"|format(change.new_price) }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent menu changes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Modal -->
+<div class="modal fade" id="dateRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Custom Date Range</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="dateRangeForm">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="applyDateRange()">Apply</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .trend-indicator {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .trend-indicator.positive {
+        color: #198754;
+    }
+    
+    .trend-indicator.negative {
+        color: #dc3545;
+    }
+    
+    .ranking-badge {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    .activity-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 12px;
+    }
+    
+    .activity-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .activity-subtitle {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .btn-group .btn.active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let currentPeriod = 'today';
+    let charts = {};
+
+    // Period change function
+    function changePeriod(period, button) {
+        // Update active button
+        document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        currentPeriod = period;
+        loadAnalyticsData(period);
+    }
+
+    // Load analytics data
+    function loadAnalyticsData(period) {
+        fetch(`{{ url_for('analytics') }}?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                updateKPIs(data);
+                updateCharts(data);
+            })
+            .catch(error => {
+                console.error('Error loading analytics data:', error);
+            });
+    }
+
+    // Update KPI values
+    function updateKPIs(data) {
+        document.getElementById('totalRevenue').textContent = '$' + (data.total_revenue || '0.00');
+        document.getElementById('totalOrders').textContent = data.total_orders || '0';
+        document.getElementById('avgOrderValue').textContent = '$' + (data.avg_order_value || '0.00');
+        document.getElementById('profitMargin').textContent = (data.profit_margin || '0') + '%';
+    }
+
+    // Initialize charts
+    function initializeCharts() {
+        // Revenue Trend Chart
+        const revenueTrendCtx = document.getElementById('revenueTrendChart');
+        const trendLabels = JSON.parse(revenueTrendCtx.getAttribute('data-labels') || '[]');
+        const trendData = JSON.parse(revenueTrendCtx.getAttribute('data-values') || '[]');
+        
+        charts.revenueTrend = new Chart(revenueTrendCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: trendData,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Revenue Pie Chart
+        const revenuePieCtx = document.getElementById('revenuePieChart');
+        const pieLabels = JSON.parse(revenuePieCtx.getAttribute('data-labels') || '["No Data"]');
+        const pieData = JSON.parse(revenuePieCtx.getAttribute('data-values') || '[1]');
+        
+        charts.revenuePie = new Chart(revenuePieCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: pieLabels,
+                datasets: [{
+                    data: pieData,
+                    backgroundColor: [
+                        '#0d6efd', '#6610f2', '#6f42c1', '#d63384',
+                        '#dc3545', '#fd7e14', '#ffc107', '#198754'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Hourly Sales Chart
+        const hourlyCtx = document.getElementById('hourlyChart');
+        const hourlyData = JSON.parse(hourlyCtx.getAttribute('data-values') || '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]');
+        
+        charts.hourly = new Chart(hourlyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM'],
+                datasets: [{
+                    label: 'Sales',
+                    data: hourlyData,
+                    backgroundColor: '#198754'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // Weekly Sales Chart
+        const weeklyCtx = document.getElementById('weeklyChart');
+        const weeklyData = JSON.parse(weeklyCtx.getAttribute('data-values') || '[0,0,0,0,0,0,0]');
+        
+        charts.weekly = new Chart(weeklyCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                datasets: [{
+                    label: 'Sales',
+                    data: weeklyData,
+                    backgroundColor: '#ffc107'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // Update charts with new data
+    function updateCharts(data) {
+        if (charts.revenueTrend && data.revenue_trend_labels) {
+            charts.revenueTrend.data.labels = data.revenue_trend_labels;
+            charts.revenueTrend.data.datasets[0].data = data.revenue_trend_data;
+            charts.revenueTrend.update();
+        }
+
+        if (charts.revenuePie && data.category_labels) {
+            charts.revenuePie.data.labels = data.category_labels;
+            charts.revenuePie.data.datasets[0].data = data.category_data;
+            charts.revenuePie.update();
+        }
+
+        if (charts.hourly && data.hourly_sales) {
+            charts.hourly.data.datasets[0].data = data.hourly_sales;
+            charts.hourly.update();
+        }
+
+        if (charts.weekly && data.weekly_sales) {
+            charts.weekly.data.datasets[0].data = data.weekly_sales;
+            charts.weekly.update();
+        }
+    }
+
+    // Refresh dashboard
+    function refreshDashboard() {
+        loadAnalyticsData(currentPeriod);
+    }
+
+    // Apply custom date range
+    function applyDateRange() {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates.');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be after end date.');
+            return;
+        }
+        
+        fetch(`{{ url_for('analytics') }}?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                updateKPIs(data);
+                updateCharts(data);
+                document.querySelector('#dateRangeModal .btn-close').click();
+                
+                // Update period buttons
+                document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+            })
+            .catch(error => {
+                console.error('Error loading custom date range data:', error);
+            });
+    }
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+    });
+</script>
+{% endblock %}

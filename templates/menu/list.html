@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Menu Items') }} - {{ _('Food Management System') }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-card-list me-3"></i>{{ _('Menu Items') }}</h1>
+                <p class="text-muted mb-0">{{ _('Manage your restaurant menu items and pricing') }}</p>
+            </div>
+            {% if session.role == 'admin' %}
+            <div>
+                <a href="{{ url_for('add_menu_item') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>{{ _('Add Menu Item') }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="content-card mb-4">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="categoryFilter" class="form-label">{{ _('Filter by Category') }}</label>
+                    <select class="form-select" id="categoryFilter">
+                        <option value="">{{ _('All Categories') }}</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="searchInput" class="form-label">{{ _('Search Items') }}</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="{{ _('Search by name (English/Arabic)...') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="statusFilter" class="form-label">{{ _('Availability') }}</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">{{ _('All Items') }}</option>
+                        <option value="1">{{ _('Available') }}</option>
+                        <option value="0">{{ _('Unavailable') }}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="content-card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-grid me-2"></i>Menu Items ({{ menu_items|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if menu_items %}
+            <div class="row" id="menuItemsContainer">
+                {% for item in menu_items %}
+                <div class="col-xl-3 col-lg-4 col-md-6 mb-4 menu-item" 
+                     data-category="{{ item.category_id or '' }}" 
+                     data-available="{{ '1' if item.is_available else '0' }}"
+                     data-name="{{ item.name.lower() }}"
+                     data-arabic-name="{{ (item.arabic_name or '').lower() }}">
+                    <div class="card h-100 shadow-hover">
+                        {% if item.image %}
+                        <img src="{{ url_for('uploaded_file', filename=item.image) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(135deg, var(--light-bg), var(--border-color));">
+                            <i class="bi bi-image" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-0">{{ item.name }}</h6>
+                                    {% if item.arabic_name %}
+                                    <p class="text-muted mb-0" style="direction: rtl; font-size: 0.9rem;">{{ item.arabic_name }}</p>
+                                    {% endif %}
+                                </div>
+                                {% if item.is_available %}
+                                    <span class="badge bg-success">Available</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Unavailable</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if item.category_name %}
+                            <small class="text-muted mb-2">
+                                <i class="bi bi-tag me-1"></i>{{ item.category_name }}
+                            </small>
+                            {% endif %}
+                            
+                            {% if item.description %}
+                            <p class="card-text small text-muted mb-3">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                            {% endif %}
+                            
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="text-primary mb-0">${{ "%.2f"|format(item.price) }}</h5>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if session.role == 'admin' %}
+                                        <a href="{{ url_for('edit_menu_item', item_id=item.id) }}" class="btn btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                        <button class="btn btn-outline-info view-item-btn" data-item-id="{{ item.id }}" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- No Results Message -->
+            <div id="noResults" class="text-center py-5" style="display: none;">
+                <i class="bi bi-search" style="font-size: 3rem; color: var(--text-muted);"></i>
+                <p class="text-muted mt-3 mb-0">No menu items found matching your criteria</p>
+            </div>
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-card-list" style="font-size: 4rem; color: var(--text-muted);"></i>
+                <h4 class="text-muted mt-3">No Menu Items Yet</h4>
+                <p class="text-muted">Start building your menu by adding your first item</p>
+                {% if session.role == 'admin' %}
+                <a href="{{ url_for('add_menu_item') }}" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle me-2"></i>Add First Menu Item
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Item Details Modal -->
+<div class="modal fade" id="itemDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-info-circle me-2"></i>Item Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="itemDetailsContent">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Filter functionality
+    function filterMenuItems() {
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        
+        const menuItems = document.querySelectorAll('.menu-item');
+        let visibleCount = 0;
+        
+        menuItems.forEach(item => {
+            let show = true;
+            
+            // Category filter
+            if (categoryFilter && item.dataset.category !== categoryFilter) {
+                show = false;
+            }
+            
+            // Search filter - search in both English and Arabic names
+            if (searchInput && !item.dataset.name.includes(searchInput) && !item.dataset.arabicName.includes(searchInput)) {
+                show = false;
+            }
+            
+            // Status filter
+            if (statusFilter && item.dataset.available !== statusFilter) {
+                show = false;
+            }
+            
+            if (show) {
+                item.style.display = 'block';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide no results message
+        const noResults = document.getElementById('noResults');
+        if (visibleCount === 0 && menuItems.length > 0) {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    document.getElementById('categoryFilter').addEventListener('change', filterMenuItems);
+    document.getElementById('searchInput').addEventListener('input', filterMenuItems);
+    document.getElementById('statusFilter').addEventListener('change', filterMenuItems);
+    
+    // Event delegation for view item details
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.view-item-btn')) {
+            const button = e.target.closest('.view-item-btn');
+            const itemId = button.getAttribute('data-item-id');
+            viewItemDetails(itemId);
+        }
+    });
+
+    // View item details function
+    function viewItemDetails(itemId) {
+        // For now, show a placeholder modal
+        // In a full implementation, this would fetch item details via AJAX
+        const modal = new bootstrap.Modal(document.getElementById('itemDetailsModal'));
+        document.getElementById('itemDetailsContent').innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-info-circle" style="font-size: 3rem; color: var(--info-color);"></i>
+                <p class="mt-3">Item details view for item ID: ${itemId}</p>
+                <p class="text-muted">This would show detailed information about the menu item including price history, ingredients, and sales data.</p>
+            </div>
+        `;
+        modal.show();
+    }
+</script>
+{% endblock %}

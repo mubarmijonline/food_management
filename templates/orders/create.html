@@ -1,0 +1,1118 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Create New Order') }} - {{ _('Food Management System') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .menu-item-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        height: 100%;
+    }
+    
+    .menu-item-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-blue);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .menu-item-image {
+        height: 180px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    .menu-item-placeholder {
+        height: 180px;
+        background: linear-gradient(135deg, var(--light-bg), var(--border-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .quantity-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .cart-item {
+        border-left: 3px solid var(--accent-blue);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(96, 165, 250, 0.02));
+        border-radius: var(--border-radius);
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .cart-item:hover {
+        transform: translateX(2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .menu-items-grid {
+        max-height: 75vh;
+        overflow-y: auto;
+        padding: 1rem 0;
+    }
+    
+    .menu-items-grid .row {
+        margin: 0;
+    }
+    
+    .menu-items-grid .col-lg-4,
+    .menu-items-grid .col-md-6,
+    .menu-items-grid .col-sm-6 {
+        padding: 0.5rem;
+    }
+    
+    .menu-items-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .menu-items-grid::-webkit-scrollbar-track {
+        background: var(--light-bg);
+        border-radius: 4px;
+    }
+    
+    .menu-items-grid::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+    }
+    
+    .menu-items-grid::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+    
+    @media (max-width: 991px) {
+        .menu-items-grid {
+            max-height: 60vh;
+        }
+    }
+    
+    @media (max-width: 767px) {
+        .menu-items-grid {
+            max-height: 50vh;
+        }
+        
+        .menu-items-grid .col-sm-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+    
+    .customer-dropdown-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s;
+    }
+    
+    .customer-dropdown-item:hover {
+        background-color: var(--light-bg);
+    }
+    
+    .customer-dropdown-item:last-child {
+        border-bottom: none;
+    }
+    
+    .customer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .customer-name {
+        font-weight: 600;
+        color: var(--primary-navy);
+    }
+    
+    .customer-mobile {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    
+    .cart-item .form-control-sm {
+        font-size: 0.8rem;
+        border-color: #e3f2fd;
+        background-color: #fafafa;
+    }
+    
+    .cart-item .form-control-sm:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+    }
+    
+    .cart-item .form-control-sm::placeholder {
+        color: #999;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-plus-circle me-3"></i>{{ _('Create New Order') }}</h1>
+                <p class="text-muted mb-0">{{ _('Add items to cart and complete the order') }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('orders') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>{{ _('Back') }} {{ _('to Orders') }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Order Cart (Left Side) -->
+        <div class="col-lg-4">
+            <!-- Cart -->
+            <div class="content-card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-cart me-2"></i>{{ _('Order Cart') }}</h5>
+                    <span class="badge bg-primary" id="cartCount">0</span>
+                </div>
+                <div class="card-body">
+                    <div id="cartItems">
+                        <div class="text-center py-4" id="emptyCart">
+                            <i class="bi bi-cart-x" style="font-size: 3rem; color: var(--text-muted);"></i>
+                            <p class="text-muted mt-2 mb-0">{{ _('Cart is empty') }}</p>
+                            <small class="text-muted">{{ _('Click on menu items to add them') }}</small>
+                        </div>
+                    </div>
+                    
+                    <div id="cartTotal" class="mt-3" style="display: none;">
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><strong>{{ _('Total') }}:</strong></span>
+                            <strong class="large-number text-success" id="totalAmount">$0.00</strong>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="clearCart()">
+                            <i class="bi bi-trash me-2"></i>{{ _('Clear Cart') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="content-card mb-4" id="checkoutSection" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>{{ _('Customer Information') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="client_search" class="form-label">{{ _('Search Existing Customer') }}</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="client_search" placeholder="{{ _('Type customer name or mobile...') }}">
+                            <div id="customerDropdown" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <!-- Customer suggestions will appear here -->
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ _('Or fill in details below for new customer') }}</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customer-name" class="form-label">{{ _('Customer Name') }} <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="customer-name" name="client_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customer-mobile" class="form-label">{{ _('Mobile Number') }} <span class="text-danger">*</span></label>
+                        <input type="tel" class="form-control" id="customer-mobile" name="client_mobile" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="delivery_date" class="form-label">{{ _('Delivery Date & Time') }} <span class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="delivery-date" name="delivery_date" required>
+                        <small class="text-muted">{{ _('When should this order be delivered/ready') }}</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">{{ _('Order Notes') }}</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="{{ _('Special instructions or notes...') }}"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Place Order -->
+            <div class="content-card" id="placeOrderSection" style="display: none;">
+                <div class="card-body">
+                    <form id="orderForm">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg" id="submitOrder" disabled>
+                                <i class="bi bi-check-circle me-2"></i>{{ _('Place Order') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items (Right Side) -->
+        <div class="col-lg-8">
+            <!-- Category Filter -->
+            <div class="content-card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label for="categoryFilter" class="form-label">{{ _('Filter by Category') }}</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">{{ _('All Categories') }}</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="searchInput" class="form-label">{{ _('Search Items') }}</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="{{ _('Search menu items (English/Arabic)...') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Items Grid -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-card-list me-2"></i>{{ _('Menu Items') }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="menu-items-grid p-3">
+                        <div class="row g-3" id="menuItemsContainer">
+                            {% for item in menu_items %}
+                            <div class="col-lg-4 col-md-6 col-sm-6 mb-3 menu-item" 
+                                 data-category="{{ item.category_id or '' }}" 
+                                 data-name="{{ item.name.lower() }}"
+                                 data-arabic-name="{{ (item.arabic_name or '').lower() }}">
+                                <div class="card menu-item-card" 
+                                     data-item-id="{{ item.id }}" 
+                                     data-item-name="{{ item.name }}" 
+                                     data-item-price="{{ item.price }}">
+                                    {% if item.image %}
+                                    <img src="{{ url_for('uploaded_file', filename=item.image) }}" class="card-img-top menu-item-image" alt="{{ item.name }}">
+                                    {% else %}
+                                    <div class="card-img-top menu-item-placeholder">
+                                        <i class="bi bi-image" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="card-body d-flex flex-column">
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-title mb-1">{{ item.name }}</h6>
+                                            {% if item.arabic_name %}
+                                            <p class="text-muted mb-1" style="direction: rtl; font-size: 0.85rem;">{{ item.arabic_name }}</p>
+                                            {% endif %}
+                                            {% if item.category_name %}
+                                            <small class="text-muted d-block mb-2">{{ item.category_name }}</small>
+                                            {% endif %}
+                                            {% if item.description %}
+                                            <p class="card-text small text-muted mb-2">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="table-currency">${{ "%.2f"|format(item.price) }}</strong>
+                                            <button class="btn btn-primary add-to-cart-btn" 
+                                                    data-item-id="{{ item.id }}" 
+                                                    data-item-name="{{ item.name }}" 
+                                                    data-item-price="{{ item.price }}"
+                                                    type="button">
+                                                <i class="bi bi-plus me-1"></i>{{ _('Add') }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Translation object for JavaScript
+    const translations = {
+        'Added another': '{{ _("Added another") }}',
+        'to cart': '{{ _("to cart") }}',
+        'added to cart': '{{ _("added to cart") }}',
+        'removed from cart': '{{ _("removed from cart") }}',
+        'Increased': '{{ _("Increased") }}',
+        'quantity': '{{ _("quantity") }}',
+        'Decreased': '{{ _("Decreased") }}',
+        'Are you sure you want to clear the cart?': '{{ _("Are you sure you want to clear the cart?") }}',
+        'Please enter customer name and mobile number.': '{{ _("Please enter customer name and mobile number.") }}',
+        'Please select a delivery date.': '{{ _("Please select a delivery date.") }}',
+        'Please add items to cart before creating order.': '{{ _("Please add items to cart before creating order.") }}',
+        'Order created successfully!': '{{ _("Order created successfully!") }}',
+        'Error creating order. Please try again.': '{{ _("Error creating order. Please try again.") }}',
+        'No customers found': '{{ _("No customers found") }}',
+        'Cart is empty': '{{ _("Cart is empty") }}',
+        'Click on menu items to add them': '{{ _("Click on menu items to add them") }}',
+        'No items found': '{{ _("No items found") }}',
+        'Try adjusting your search or filter criteria': '{{ _("Try adjusting your search or filter criteria") }}',
+        'Added': '{{ _("Added") }}',
+        'Add': '{{ _("Add") }}',
+        'each': '{{ _("each") }}',
+        'Special instructions (e.g. no pickles)': '{{ _("Special instructions (e.g. no pickles)") }}',
+        'Special Instructions': '{{ _("Special Instructions") }}',
+        'Special Request': '{{ _("Special Request") }}',
+        'Yes, clear it!': '{{ _("Yes, clear it!") }}',
+        'Cancel': '{{ _("Cancel") }}',
+        'Cart cleared!': '{{ _("Cart cleared!") }}',
+        'Missing Information': '{{ _("Missing Information") }}',
+        'Missing Delivery Date': '{{ _("Missing Delivery Date") }}',
+        'Empty Cart': '{{ _("Empty Cart") }}',
+        'OK': '{{ _("OK") }}',
+        'Order Created Successfully!': '{{ _("Order Created Successfully!") }}',
+        'View Orders': '{{ _("View Orders") }}',
+        'Print Receipt': '{{ _("Print Receipt") }}',
+        'Error Creating Order': '{{ _("Error Creating Order") }}',
+        'Network Error': '{{ _("Network Error") }}',
+        'Error': '{{ _("Error") }}',
+        'Order ID not found': '{{ _("Order ID not found") }}',
+        'Generating Receipt...': '{{ _("Generating Receipt...") }}',
+        'Unable to fetch order details for receipt': '{{ _("Unable to fetch order details for receipt") }}',
+        'Error generating receipt': '{{ _("Error generating receipt") }}'
+    };
+
+    let cart = [];
+    let cartTotal = 0;
+    let searchTimeout;
+    let customersCache = [];
+    let selectedCustomer = null;
+
+    // Helper function to update special request for a cart item
+    function updateSpecialRequest(itemId, value) {
+        const item = cart.find(item => item.id === itemId);
+        if (item) {
+            item.special_request = value || '';
+        }
+    }
+
+    // Add item to cart (main function)
+    function addToCart(itemId, itemName, itemPrice) {
+        // Prevent double-clicking
+        const button = document.querySelector(`[data-item-id="${itemId}"].add-to-cart-btn`);
+        if (button && button.disabled) return;
+        
+        // Temporarily disable button
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = `<i class="bi bi-check me-1"></i>${translations['Added']}`;
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = `<i class="bi bi-plus me-1"></i>${translations['Add']}`;
+            }, 1000);
+        }
+        
+        const existingItem = cart.find(item => item.id === itemId);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+            showCartNotification(`${translations['Added another']} ${itemName} ${translations['to cart']}`, 'success');
+        } else {
+            cart.push({
+                id: itemId,
+                name: itemName,
+                price: parseFloat(itemPrice),
+                quantity: 1,
+                special_request: ''
+            });
+            showCartNotification(`${itemName} ${translations['added to cart']}`, 'success');
+        }
+        
+        console.log('Cart after adding item:', cart);
+        updateCartDisplay();
+        
+        // Add visual feedback to the menu item
+        const menuCard = document.querySelector(`[data-item-id="${itemId}"].card`);
+        if (menuCard) {
+            menuCard.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                menuCard.style.transform = 'scale(1)';
+            }, 150);
+        }
+    }
+
+    // Show cart notification
+    function showCartNotification(message, type = 'info') {
+        // Remove any existing notification
+        const existingNotif = document.getElementById('cartNotification');
+        if (existingNotif) {
+            existingNotif.remove();
+        }
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.id = 'cartNotification';
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 250px;';
+        notification.innerHTML = `
+            <i class="bi bi-cart-check me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (notification && notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+
+    // Remove item from cart
+    function removeFromCart(itemId) {
+        const item = cart.find(item => item.id === itemId);
+        if (item) {
+            showCartNotification(`${item.name} ${translations['removed from cart']}`, 'warning');
+        }
+        cart = cart.filter(item => item.id !== itemId);
+        updateCartDisplay();
+    }
+
+    // Update item quantity
+    function updateQuantity(itemId, newQuantity) {
+        if (newQuantity <= 0) {
+            const item = cart.find(item => item.id === itemId);
+            if (item) {
+                showCartNotification(`${item.name} ${translations['removed from cart']}`, 'warning');
+            }
+            removeFromCart(itemId);
+            return;
+        }
+        
+        const item = cart.find(item => item.id === itemId);
+        if (item) {
+            const oldQuantity = item.quantity;
+            item.quantity = newQuantity;
+            
+            if (newQuantity > oldQuantity) {
+                showCartNotification(`${translations['Increased']} ${item.name} ${translations['quantity']}`, 'info');
+            } else {
+                showCartNotification(`${translations['Decreased']} ${item.name} ${translations['quantity']}`, 'info');
+            }
+            
+            updateCartDisplay();
+        }
+    }
+
+    // Update cart display
+    function updateCartDisplay() {
+        const cartItemsContainer = document.getElementById('cartItems');
+        const cartCounts = document.querySelectorAll('#cartCount');
+        const cartTotalDiv = document.getElementById('cartTotal');
+        const totalAmountSpans = document.querySelectorAll('#totalAmount');
+        const submitButtons = document.querySelectorAll('#submitOrder');
+        const checkoutSection = document.getElementById('checkoutSection');
+        const placeOrderSection = document.getElementById('placeOrderSection');
+        
+        // Update cart count
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        cartCounts.forEach(count => count.textContent = totalItems);
+        
+        // Calculate total
+        cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        totalAmountSpans.forEach(span => span.textContent = `$${cartTotal.toFixed(2)}`);
+        
+        if (cart.length === 0) {
+            // Show empty cart message
+            cartItemsContainer.innerHTML = `
+                <div class="text-center py-4" id="emptyCart">
+                    <i class="bi bi-cart-x" style="font-size: 3rem; color: var(--text-muted);"></i>
+                    <p class="text-muted mt-2 mb-0">${translations['Cart is empty']}</p>
+                    <small class="text-muted">${translations['Click on menu items to add them']}</small>
+                </div>
+            `;
+            cartTotalDiv.style.display = 'none';
+            if (checkoutSection) checkoutSection.style.display = 'none';
+            if (placeOrderSection) placeOrderSection.style.display = 'none';
+            submitButtons.forEach(btn => btn.disabled = true);
+        } else {
+            cartTotalDiv.style.display = 'block';
+            if (checkoutSection) checkoutSection.style.display = 'block';
+            if (placeOrderSection) placeOrderSection.style.display = 'block';
+            submitButtons.forEach(btn => btn.disabled = false);
+            
+            // Generate cart items HTML with special request input
+            let cartHTML = '';
+            cart.forEach((item, index) => {
+                cartHTML += `
+                    <div class="cart-item p-3 mb-2" data-item-id="${item.id}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">${item.name}</h6>
+                                <small class="text-muted table-currency">$${item.price.toFixed(2)} ${translations['each']}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart(${item.id})" title="Remove">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" 
+                                   class="form-control form-control-sm" 
+                                   placeholder="${translations['Special instructions (e.g. no pickles)']}" 
+                                   value="${item.special_request || ''}" 
+                                   onchange="updateSpecialRequest(${item.id}, this.value)"
+                                   title="${translations['Special Request']}">
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="quantity-control">
+                                <button class="btn btn-sm btn-outline-secondary quantity-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})" title="Decrease">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <span class="mx-3 fw-bold">${item.quantity}</span>
+                                <button class="btn btn-sm btn-outline-secondary quantity-btn" onclick="updateQuantity(${item.id}, ${item.quantity + 1})" title="Increase">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <strong class="text-primary fs-6">$${(item.price * item.quantity).toFixed(2)}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            cartItemsContainer.innerHTML = cartHTML;
+        }
+    }
+
+    // Clear cart
+    function clearCart() {
+        if (cart.length > 0) {
+            Swal.fire({
+                title: translations['Are you sure you want to clear the cart?'],
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: '{{ _("Yes, clear it!") }}',
+                cancelButtonText: '{{ _("Cancel") }}'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    cart = [];
+                    updateCartDisplay();
+                    Swal.fire({
+                        title: '{{ _("Cart cleared!") }}',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        }
+    }
+
+    // Filter menu items with better search
+    function filterMenuItems() {
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const searchInput = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        const menuItems = document.querySelectorAll('.menu-item');
+        let visibleCount = 0;
+        
+        menuItems.forEach(item => {
+            let show = true;
+            
+            // Category filter
+            if (categoryFilter && item.dataset.category !== categoryFilter) {
+                show = false;
+            }
+            
+            // Search filter - search in item name, Arabic name, and description
+            if (searchInput) {
+                const itemName = item.dataset.name;
+                const itemArabicName = item.dataset.arabicName;
+                const itemCard = item.querySelector('.card-title');
+                const itemDescription = item.querySelector('.card-text');
+                
+                const nameMatch = itemName && itemName.includes(searchInput);
+                const arabicNameMatch = itemArabicName && itemArabicName.includes(searchInput);
+                const descMatch = itemDescription && itemDescription.textContent.toLowerCase().includes(searchInput);
+                
+                if (!nameMatch && !arabicNameMatch && !descMatch) {
+                    show = false;
+                }
+            }
+            
+            if (show) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show no results message if needed
+        const container = document.getElementById('menuItemsContainer');
+        let noResultsMsg = container.querySelector('.no-results-message');
+        
+        if (visibleCount === 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'col-12 no-results-message';
+                noResultsMsg.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-search" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        <h5 class="text-muted mt-3">${translations['No items found']}</h5>
+                        <p class="text-muted">${translations['Try adjusting your search or filter criteria']}</p>
+                    </div>
+                `;
+                container.appendChild(noResultsMsg);
+            }
+        } else {
+            if (noResultsMsg) {
+                noResultsMsg.remove();
+            }
+        }
+    }
+
+    // Add event listeners
+    document.getElementById('categoryFilter').addEventListener('change', filterMenuItems);
+    document.getElementById('searchInput').addEventListener('input', filterMenuItems);
+
+    // Event delegation for add to cart buttons only
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.add-to-cart-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const button = e.target.closest('.add-to-cart-btn');
+            const itemId = parseInt(button.getAttribute('data-item-id'));
+            const itemName = button.getAttribute('data-item-name');
+            const itemPrice = parseFloat(button.getAttribute('data-item-price'));
+            addToCart(itemId, itemName, itemPrice);
+        }
+    });
+
+    // Form submission
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        console.log('Form submission triggered');
+        console.log('Cart contents:', cart);
+        
+        const clientName = document.getElementById('customer-name').value.trim();
+        const clientMobile = document.getElementById('customer-mobile').value.trim();
+        const deliveryDate = document.getElementById('delivery-date').value;
+        const notes = document.getElementById('notes').value.trim();
+        
+        console.log('Form data:', {clientName, clientMobile, deliveryDate, notes});
+        
+        if (!clientName || !clientMobile) {
+            Swal.fire({
+                title: '{{ _("Missing Information") }}',
+                text: translations['Please enter customer name and mobile number.'],
+                icon: 'warning',
+                confirmButtonText: '{{ _("OK") }}'
+            });
+            return;
+        }
+        
+        if (!deliveryDate) {
+            Swal.fire({
+                title: '{{ _("Missing Delivery Date") }}',
+                text: translations['Please select a delivery date.'],
+                icon: 'warning',
+                confirmButtonText: '{{ _("OK") }}'
+            });
+            return;
+        }
+        
+        if (cart.length === 0) {
+            Swal.fire({
+                title: '{{ _("Empty Cart") }}',
+                text: translations['Please add items to cart before creating order.'],
+                icon: 'warning',
+                confirmButtonText: '{{ _("OK") }}'
+            });
+            return;
+        }
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('client_name', clientName);
+        formData.append('client_mobile', clientMobile);
+        formData.append('delivery_date', deliveryDate);
+        formData.append('notes', notes);
+        formData.append('cart_items', JSON.stringify(cart));
+        
+        // Include customer ID if selected from existing customers
+        if (selectedCustomer) {
+            formData.append('customer_id', selectedCustomer.id);
+        }
+        
+        // Submit form
+        fetch('{{ url_for("create_order") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: '{{ _("Order Created Successfully!") }}',
+                    text: translations['Order created successfully!'],
+                    icon: 'success',
+                    confirmButtonText: '{{ _("View Orders") }}',
+                    showCancelButton: true,
+                    cancelButtonText: '{{ _("Print Receipt") }}',
+                    cancelButtonColor: '#3b82f6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '{{ url_for("orders") }}';
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        // Print receipt
+                        printReceipt(data.order_id);
+                        setTimeout(() => {
+                            window.location.href = '{{ url_for("orders") }}';
+                        }, 2000);
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: '{{ _("Error Creating Order") }}',
+                    text: data.message || translations['Error creating order. Please try again.'],
+                    icon: 'error',
+                    confirmButtonText: '{{ _("OK") }}'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: '{{ _("Network Error") }}',
+                text: translations['Error creating order. Please try again.'],
+                icon: 'error',
+                confirmButtonText: '{{ _("OK") }}'
+            });
+        });
+    });
+
+    // Initialize
+    updateCartDisplay();
+    
+    // Set default delivery date and time to 2 hours from now
+    const now = new Date();
+    now.setHours(now.getHours() + 2); // Add 2 hours for preparation time
+    const datetimeString = now.toISOString().slice(0, 16); // Format for datetime-local input
+    document.getElementById('delivery-date').value = datetimeString;
+    
+    // Customer search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerSearchInput = document.getElementById('client_search');
+        const customerDropdown = document.getElementById('customerDropdown');
+        const customerNameInput = document.getElementById('customer-name');
+        const customerMobileInput = document.getElementById('customer-mobile');
+        
+        // Customer search functionality
+        customerSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (query.length >= 2) {
+                    searchCustomers(query);
+                } else {
+                    hideCustomerDropdown();
+                }
+            }, 300);
+        });
+        
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.position-relative')) {
+                hideCustomerDropdown();
+            }
+        });
+    });
+    
+    async function searchCustomers(query) {
+        try {
+            const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}`);
+            const customers = await response.json();
+            
+            customersCache = customers;
+            displayCustomers(customers);
+        } catch (error) {
+            console.error('Error searching customers:', error);
+            hideCustomerDropdown();
+        }
+    }
+    
+    function displayCustomers(customers) {
+        const dropdown = document.getElementById('customerDropdown');
+        
+        if (customers.length === 0) {
+            dropdown.innerHTML = `<div class="customer-dropdown-item text-muted">${translations['No customers found']}</div>`;
+        } else {
+            dropdown.innerHTML = customers.map(customer => `
+                <div class="customer-dropdown-item" onclick="selectCustomer(${customer.id})">
+                    <div class="customer-info">
+                        <span class="customer-name">${customer.name}</span>
+                        <span class="customer-mobile">${customer.mobile || ''}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        dropdown.style.display = 'block';
+    }
+    
+    function selectCustomer(customerId) {
+        const customer = customersCache.find(c => c.id === customerId);
+        if (customer) {
+            selectedCustomer = customer;
+            
+            document.getElementById('client_search').value = customer.name;
+            document.getElementById('customer-name').value = customer.name;
+            document.getElementById('customer-mobile').value = customer.mobile || '';
+            
+            hideCustomerDropdown();
+        }
+    }
+    
+    function hideCustomerDropdown() {
+        document.getElementById('customerDropdown').style.display = 'none';
+    }
+    
+    // Print receipt function
+    function printReceipt(orderId) {
+        if (!orderId) {
+            Swal.fire({
+                title: '{{ _("Error") }}',
+                text: '{{ _("Order ID not found") }}',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Show loading
+        Swal.fire({
+            title: '{{ _("Generating Receipt...") }}',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Fetch order details for receipt
+        fetch(`/api/order/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    generateAndPrintReceipt(data.order, data.order_items);
+                } else {
+                    Swal.fire({
+                        title: '{{ _("Error") }}',
+                        text: '{{ _("Unable to fetch order details for receipt") }}',
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching order details:', error);
+                Swal.fire({
+                    title: '{{ _("Error") }}',
+                    text: '{{ _("Error generating receipt") }}',
+                    icon: 'error'
+                });
+            });
+    }
+    
+    // Generate and print receipt
+    function generateAndPrintReceipt(order, orderItems) {
+        const receiptWindow = window.open('', '_blank', 'width=300,height=600');
+        const currentDate = new Date().toLocaleDateString();
+        const deliveryDate = new Date(order.delivery_date).toLocaleString();
+        
+        let itemsHtml = '';
+        let total = 0;
+        
+        orderItems.forEach(item => {
+            const subtotal = item.quantity * item.unit_price;
+            total += subtotal;
+            itemsHtml += `
+                <tr>
+                    <td>${item.menu_item_name}</td>
+                    <td style="text-align: center;">${item.quantity}</td>
+                    <td style="text-align: right;">$${item.unit_price.toFixed(2)}</td>
+                    <td style="text-align: right;">$${subtotal.toFixed(2)}</td>
+                </tr>
+                ${item.special_request ? `<tr><td colspan="4" style="font-size: 11px; color: #666; padding-left: 10px;">• ${item.special_request}</td></tr>` : ''}
+            `;
+        });
+        
+        const receiptHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Receipt - Order #${order.id}</title>
+                <style>
+                    body { 
+                        font-family: 'Courier New', monospace; 
+                        font-size: 12px; 
+                        line-height: 1.4; 
+                        margin: 0; 
+                        padding: 10px; 
+                        width: 280px;
+                    }
+                    .header { 
+                        text-align: center; 
+                        border-bottom: 2px solid #000; 
+                        padding-bottom: 10px; 
+                        margin-bottom: 10px; 
+                    }
+                    .company-name { 
+                        font-size: 16px; 
+                        font-weight: bold; 
+                        margin-bottom: 5px; 
+                    }
+                    .receipt-title { 
+                        font-size: 14px; 
+                        font-weight: bold; 
+                        margin: 10px 0; 
+                    }
+                    .info-section { 
+                        margin: 10px 0; 
+                    }
+                    .info-row { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        margin: 2px 0; 
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin: 10px 0; 
+                    }
+                    th, td { 
+                        padding: 3px; 
+                        font-size: 11px; 
+                    }
+                    th { 
+                        border-bottom: 1px solid #000; 
+                        font-weight: bold; 
+                    }
+                    .total-section { 
+                        border-top: 2px solid #000; 
+                        padding-top: 10px; 
+                        margin-top: 10px; 
+                    }
+                    .total-row { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        font-weight: bold; 
+                        font-size: 14px; 
+                        margin: 5px 0; 
+                    }
+                    .footer { 
+                        text-align: center; 
+                        margin-top: 20px; 
+                        padding-top: 10px; 
+                        border-top: 1px dashed #000; 
+                        font-size: 10px; 
+                    }
+                    @media print {
+                        body { margin: 0; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="company-name">{{ _('Food Management System') }}</div>
+                    <div>{{ _('Order Receipt') }}</div>
+                </div>
+                
+                <div class="receipt-title">{{ _('RECEIPT') }}</div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <span>{{ _('Order #') }}:</span>
+                        <span>${order.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>{{ _('Date') }}:</span>
+                        <span>${currentDate}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>{{ _('Customer') }}:</span>
+                        <span>${order.client_name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>{{ _('Mobile') }}:</span>
+                        <span>${order.client_mobile}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>{{ _('Delivery') }}:</span>
+                        <span>${deliveryDate}</span>
+                    </div>
+                    ${order.notes ? `<div class="info-row"><span>{{ _('Notes') }}:</span><span>${order.notes}</span></div>` : ''}
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{{ _('Item') }}</th>
+                            <th style="text-align: center;">{{ _('Qty') }}</th>
+                            <th style="text-align: right;">{{ _('Price') }}</th>
+                            <th style="text-align: right;">{{ _('Total') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                
+                <div class="total-section">
+                    <div class="total-row">
+                        <span>{{ _('TOTAL AMOUNT') }}:</span>
+                        <span>$${total.toFixed(2)}</span>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <div>{{ _('Thank you for your order!') }}</div>
+                    <div>{{ _('Generated on') }} ${currentDate}</div>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 1000);
+                    }
+                </script>
+            </body>
+            </html>
+        `;
+        
+        receiptWindow.document.write(receiptHtml);
+        receiptWindow.document.close();
+        
+        // Close the loading dialog
+        Swal.close();
+    }
+</script>
+{% endblock %}

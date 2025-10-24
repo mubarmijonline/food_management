@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Order') }} #{{ order.id }} - {{ _('Food Management System') }}{% endblock %}
+
+{% block content %}
+<div class="fade-in" data-order-id="{{ order.id }}">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-receipt me-3"></i>{{ _('Order') }} #{{ order.id }}</h1>
+                <p class="text-muted mb-0">{{ _('View order details and manage status') }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('orders') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>{{ _('Back to Orders') }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Order Information -->
+        <div class="col-lg-8">
+            <!-- Order Details -->
+            <div class="content-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>{{ _('Order Information') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">{{ _('Order ID') }}</label>
+                                <p class="mb-0"><strong class="text-primary">#{{ order.id }}</strong></p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">{{ _('Customer Name') }}</label>
+                                <p class="mb-0"><strong>{{ order.client_name }}</strong></p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">{{ _('Mobile Number') }}</label>
+                                <p class="mb-0">
+                                    <i class="bi bi-telephone me-1"></i>
+                                    <strong>{{ order.client_mobile }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Order Status</label>
+                                <p class="mb-0">
+                                    {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning fs-6">
+                                            <i class="bi bi-clock me-1"></i>Pending
+                                        </span>
+                                    {% elif order.status == 'completed' %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="bi bi-check-circle me-1"></i>Completed
+                                        </span>
+                                    {% elif order.status == 'delivered' %}
+                                        <span class="badge bg-info fs-6">
+                                            <i class="bi bi-truck me-1"></i>Delivered
+                                        </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Total Amount</label>
+                                <p class="mb-0">
+                                    <strong class="text-success fs-4">${{ "%.2f"|format(order.total_amount) }}</strong>
+                                </p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Created By</label>
+                                <p class="mb-0">
+                                    <i class="bi bi-person me-1"></i>
+                                    {{ order.created_by_name or 'Unknown' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Order Date</label>
+                                <p class="mb-0">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Last Updated</label>
+                                <p class="mb-0">
+                                    <i class="bi bi-clock-history me-1"></i>
+                                    {{ order.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if order.notes %}
+                    <div class="mb-0">
+                        <label class="form-label text-muted">Order Notes</label>
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-sticky me-2"></i>{{ order.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Order Items ({{ order_items|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if order_items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Description</th>
+                                    <th>Unit Price</th>
+                                    <th>Quantity</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.menu_item_name }}</strong>
+                                        {% if item.menu_item_arabic_name %}
+                                        <br><small class="text-muted" style="direction: rtl;">{{ item.menu_item_arabic_name }}</small>
+                                        {% endif %}
+                                        {% if item.special_request %}
+                                        <br><small class="text-info"><i class="bi bi-info-circle me-1"></i><strong>{{ _('Special Request') }}:</strong> {{ item.special_request }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ item.menu_item_description or 'No description available' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <strong>${{ "%.2f"|format(item.unit_price) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.quantity }}</span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">${{ "%.2f"|format(item.subtotal) }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-active">
+                                    <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
+                                    <td><strong class="text-success fs-5">${{ "%.2f"|format(order.total_amount) }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-list" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        <p class="text-muted mt-3 mb-0">No items found for this order</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions and Status -->
+        <div class="col-lg-4">
+            <!-- Status Management -->
+            <div class="content-card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Order Management</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Update Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pending" {{ 'selected' if order.status == 'pending' }}>
+                                    Pending
+                                </option>
+                                <option value="completed" {{ 'selected' if order.status == 'completed' }}>
+                                    Completed
+                                </option>
+                                <option value="delivered" {{ 'selected' if order.status == 'delivered' }}>
+                                    Delivered
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Update Status
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="content-card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if order.status == 'pending' %}
+                        <button class="btn btn-warning" onclick="editOrder()">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Order
+                        </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-outline-primary" onclick="printOrder()">
+                            <i class="bi bi-printer me-2"></i>Print Order
+                        </button>
+                        
+                        <button class="btn btn-outline-info" onclick="auditOrder()">
+                            <i class="bi bi-search me-2"></i>Audit Order
+                        </button>
+                        
+                        <button class="btn btn-outline-secondary" onclick="duplicateOrder()">
+                            <i class="bi bi-files me-2"></i>Duplicate Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Order Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Items Count:</span>
+                        <strong>{{ order_items|sum(attribute='quantity') or 0 }}</strong>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Unique Items:</span>
+                        <strong>{{ order_items|length }}</strong>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <span><strong>Total Amount:</strong></span>
+                        <strong class="text-success">${{ "%.2f"|format(order.total_amount) }}</strong>
+                    </div>
+                    
+                    <!-- Status Timeline -->
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-3">Status Timeline</h6>
+                        <div class="timeline">
+                            <div class="timeline-item {{ 'active' if order.status in ['pending', 'completed', 'delivered'] }}">
+                                <i class="bi bi-circle-fill"></i>
+                                <span>Order Created</span>
+                            </div>
+                            <div class="timeline-item {{ 'active' if order.status in ['completed', 'delivered'] }}">
+                                <i class="bi bi-circle-fill"></i>
+                                <span>Order Completed</span>
+                            </div>
+                            <div class="timeline-item {{ 'active' if order.status == 'delivered' }}">
+                                <i class="bi bi-circle-fill"></i>
+                                <span>Order Delivered</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Modal -->
+<div class="modal fade" id="auditModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-search me-2"></i>Order Audit - #{{ order.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-4">
+                    <i class="bi bi-clipboard-data" style="font-size: 3rem; color: var(--info-color);"></i>
+                    <h5 class="mt-3">Order Audit Information</h5>
+                    <p class="text-muted">This section would display detailed audit trail including:</p>
+                    <ul class="list-unstyled text-start mt-3">
+                        <li><i class="bi bi-check me-2"></i>Order creation details</li>
+                        <li><i class="bi bi-check me-2"></i>Status change history</li>
+                        <li><i class="bi bi-check me-2"></i>Item modifications</li>
+                        <li><i class="bi bi-check me-2"></i>Payment information</li>
+                        <li><i class="bi bi-check me-2"></i>User interactions</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border-color);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1rem;
+        color: var(--text-muted);
+    }
+    
+    .timeline-item.active {
+        color: var(--accent-blue);
+    }
+    
+    .timeline-item i {
+        position: absolute;
+        left: -1.25rem;
+        top: 0.25rem;
+        background: white;
+        font-size: 0.75rem;
+    }
+    
+    .timeline-item.active i {
+        color: var(--accent-blue);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript">
+    // Define functions in global scope
+    window.printOrder = function() {
+        const orderId = document.querySelector('.fade-in').dataset.orderId;
+        window.printReceipt(parseInt(orderId));
+    };
+    
+    window.editOrder = function() {
+        const fadeInElement = document.querySelector('.fade-in');
+        if (!fadeInElement) {
+            console.error('Could not find .fade-in element');
+            Swal.fire({
+                title: '{{ _("Error") }}',
+                text: '{{ _("Could not find order information") }}',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        const orderId = fadeInElement.dataset.orderId;
+        console.log('Order ID from data attribute:', orderId);
+        
+        if (!orderId || orderId === 'undefined') {
+            console.error('Order ID is undefined or missing');
+            Swal.fire({
+                title: '{{ _("Error") }}',
+                text: '{{ _("Order ID not found") }}',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        console.log('Redirecting to edit order:', orderId);
+        window.location.href = `/orders/edit/${orderId}`;
+    };
+    
+    window.auditOrder = function() {
+        const modal = new bootstrap.Modal(document.getElementById('auditModal'));
+        modal.show();
+    };
+    
+    window.duplicateOrder = function() {
+        Swal.fire({
+            title: '{{ _("Duplicate Order") }}',
+            text: '{{ _("Create a new order with the same items?") }}',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '{{ _("Yes, Duplicate") }}',
+            cancelButtonText: '{{ _("Cancel") }}'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // In a real implementation, this would redirect to create order with pre-filled items
+                Swal.fire({
+                    title: '{{ _("Feature Coming Soon") }}',
+                    text: '{{ _("This feature would create a new order with the same items for quick reordering.") }}',
+                    icon: 'info'
+                });
+            }
+        });
+    };
+    
+    // Print receipt function - simplified to avoid template conflicts
+    window.printReceipt = function(orderId) {
+        if (!orderId) {
+            Swal.fire({
+                title: '{{ _("Error") }}',
+                text: '{{ _("Order ID not found") }}',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Show loading
+        Swal.fire({
+            title: '{{ _("Generating Receipt...") }}',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Use a simplified print approach
+        setTimeout(() => {
+            window.print();
+            Swal.close();
+        }, 500);
+    };
+
+</script>
+{% endblock %}

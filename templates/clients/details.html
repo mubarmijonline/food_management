@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - Client Details{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('clients') }}">Clients</a></li>
+                        <li class="breadcrumb-item active">{{ client.name }}</li>
+                    </ol>
+                </nav>
+                <h1><i class="bi bi-person me-3"></i>{{ client.name }}</h1>
+                <p class="text-muted mb-0">Client profile and order history</p>
+            </div>
+            <div>
+                <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-pencil me-2"></i>Edit Client
+                </a>
+                <a href="{{ url_for('create_order') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>New Order
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Information and Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <!-- Client Information -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Client Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3">
+                            <strong><i class="bi bi-person me-2"></i>Name:</strong><br>
+                            {{ client.name }}
+                        </li>
+                        <li class="mb-3">
+                            <strong><i class="bi bi-phone me-2"></i>Mobile:</strong><br>
+                            <a href="tel:{{ client.mobile }}" class="text-decoration-none">{{ client.mobile }}</a>
+                        </li>
+                        {% if client.email %}
+                        <li class="mb-3">
+                            <strong><i class="bi bi-envelope me-2"></i>Email:</strong><br>
+                            <a href="mailto:{{ client.email }}" class="text-decoration-none">{{ client.email }}</a>
+                        </li>
+                        {% endif %}
+                        {% if client.address %}
+                        <li class="mb-3">
+                            <strong><i class="bi bi-geo-alt me-2"></i>Address:</strong><br>
+                            {{ client.address }}
+                        </li>
+                        {% endif %}
+                        <li class="mb-0">
+                            <strong><i class="bi bi-calendar me-2"></i>Customer Since:</strong><br>
+                            {{ client.created_at.strftime('%B %d, %Y') }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Order Statistics -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="stats-card">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h3 class="count-display">{{ order_stats.total_orders or 0 }}</h3>
+                                <p class="stats-label mb-0">Total Orders</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="bi bi-receipt" style="font-size: 2rem; color: var(--accent-blue);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="stats-card">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h3 class="large-number text-success">${{ "%.2f"|format(order_stats.total_spent or 0) }}</h3>
+                                <p class="stats-label mb-0">Total Spent</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="bi bi-currency-dollar" style="font-size: 2rem; color: var(--success-color);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="stats-card">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h3 class="medium-number text-info">${{ "%.2f"|format(order_stats.avg_order_value or 0) }}</h3>
+                                <p class="stats-label mb-0">Avg Order Value</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="bi bi-graph-up" style="font-size: 2rem; color: var(--info-color);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="stats-card">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h3 class="count-display text-warning">{{ order_stats.pending_orders or 0 }}</h3>
+                                <p class="stats-label mb-0">Pending Orders</p>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="bi bi-clock-history" style="font-size: 2rem; color: var(--warning-color);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order History and Analytics -->
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Recent Orders -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Delivery Date</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td><strong>#{{ order.id }}</strong></td>
+                                    <td>{{ order.created_at.strftime('%m/%d/%Y') }}</td>
+                                    <td>{{ order.delivery_date.strftime('%m/%d/%Y') if order.delivery_date else 'N/A' }}</td>
+                                    <td class="text-end">
+                                        <span class="table-currency">${{ "%.2f"|format(order.total_amount) }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'delivered' %}primary{% else %}warning{% endif %}">
+                                            {{ order.status|title }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ url_for('view_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-receipt" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        <p class="text-muted mt-3 mb-0">No orders found</p>
+                        <a href="{{ url_for('create_order') }}" class="btn btn-primary mt-2">
+                            <i class="bi bi-plus-circle me-2"></i>Create First Order
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Favorite Items -->
+            <div class="content-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-heart me-2"></i>Favorite Items</h5>
+                </div>
+                <div class="card-body">
+                    {% if favorite_items %}
+                        {% for item in favorite_items[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 {% if loop.last %}mb-0{% endif %}">
+                            <div>
+                                <strong>{{ item.menu_item_name }}</strong>
+                                {% if item.menu_item_arabic_name %}
+                                <br><small class="text-muted" style="direction: rtl;">{{ item.menu_item_arabic_name }}</small>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ item.order_frequency }} orders</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ item.total_quantity }}</span>
+                                <br>
+                                <small class="table-currency">${{ "%.2f"|format(item.total_spent_on_item) }}</small>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr class="my-2">{% endif %}
+                        {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">No order history available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Monthly Trends -->
+            {% if monthly_trends %}
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Monthly Trends</h5>
+                </div>
+                <div class="card-body">
+                    {% for trend in monthly_trends[:6] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 {% if loop.last %}mb-0{% endif %}">
+                        <span>{{ trend.month }}/{{ trend.year }}</span>
+                        <div class="text-end">
+                            <span class="badge bg-info">{{ trend.order_count }} orders</span>
+                            <br>
+                            <small class="table-currency">${{ "%.2f"|format(trend.monthly_total or 0) }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

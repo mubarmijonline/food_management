@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t['request_refund'] if t else 'Request Refund' }} - {{ t['food_management_system'] if t else 'Food Management System' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-arrow-return-left me-2"></i>
+                        {{ t['request_refund'] if t else 'Request Refund' }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Order Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>{{ t['order_information'] if t else 'Order Information' }}</h6>
+                            <p><strong>{{ t['order_id'] if t else 'Order ID' }}:</strong> #{{ order.id }}</p>
+                            <p><strong>{{ t['customer'] if t else 'Customer' }}:</strong> {{ order.customer_name if order.customer_name else order.client_name }}</p>
+                            <p><strong>{{ t['total_amount'] if t else 'Total Amount' }}:</strong> ${{ "%.2f"|format(order.total_amount) }}</p>
+                            <p><strong>{{ t['order_date'] if t else 'Order Date' }}:</strong> {{ order.created_at.strftime('%Y-%m-%d') }}</p>
+                            <p><strong>{{ t['status'] if t else 'Status' }}:</strong> {{ order.status.title() }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Refund Request Form -->
+                    <form id="refundRequestForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="refundType" class="form-label">{{ t['refund_type'] if t else 'Refund Type' }}</label>
+                                    <select class="form-select" id="refundType" name="refund_type" required onchange="toggleRefundAmount()">
+                                        <option value="">{{ t['select_refund_type'] if t else 'Select refund type' }}</option>
+                                        <option value="full">{{ t['full_refund'] if t else 'Full Refund' }}</option>
+                                        <option value="partial">{{ t['partial_refund'] if t else 'Partial Refund' }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="refundAmount" class="form-label">{{ t['refund_amount'] if t else 'Refund Amount' }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="refundAmount" name="refund_amount" 
+                                               step="0.01" min="0" max="{{ order.total_amount }}" 
+                                               placeholder="{{ t['enter_amount'] if t else 'Enter amount' }}" disabled>
+                                    </div>
+                                    <div class="form-text">{{ t['maximum_refund'] if t else 'Maximum refund amount' }}: ${{ "%.2f"|format(order.total_amount) }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="refundReason" class="form-label">{{ t['refund_reason'] if t else 'Refund Reason' }}</label>
+                            <textarea class="form-control" id="refundReason" name="refund_reason" rows="4" 
+                                    placeholder="{{ t['explain_refund_reason'] if t else 'Please explain why you are requesting a refund...' }}" required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('orders') }}" class="btn btn-secondary me-md-2">
+                                        <i class="bi bi-x-circle"></i>
+                                        {{ t['cancel'] if t else 'Cancel' }}
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-send"></i>
+                                        {{ t['submit_refund_request'] if t else 'Submit Refund Request' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pass data to JavaScript -->
+<script type="application/json" id="order-data">
+    {
+        "total_amount": {{ order.total_amount|float }},
+        "order_id": {{ order.id }},
+        "urls": {
+            "request_refund": "{{ url_for('request_refund', order_id=order.id) }}",
+            "orders": "{{ url_for('orders') }}"
+        },
+        "translations": {
+            "submitting": "{{ t['submitting'] if t else 'Submitting...' }}",
+            "error_occurred": "{{ t['error_occurred'] if t else 'An error occurred while submitting your request' }}"
+        }
+    }
+</script>
+
+<script>
+// Get data from JSON script tag
+const orderData = JSON.parse(document.getElementById('order-data').textContent);
+
+function toggleRefundAmount() {
+    const refundType = document.getElementById('refundType').value;
+    const refundAmountInput = document.getElementById('refundAmount');
+    
+    if (refundType === 'full') {
+        refundAmountInput.value = orderData.total_amount.toFixed(2);
+        refundAmountInput.disabled = true;
+        refundAmountInput.required = false;
+    } else if (refundType === 'partial') {
+        refundAmountInput.value = '';
+        refundAmountInput.disabled = false;
+        refundAmountInput.required = true;
+    } else {
+        refundAmountInput.value = '';
+        refundAmountInput.disabled = true;
+        refundAmountInput.required = false;
+    }
+}
+
+document.getElementById('refundRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    
+    // Disable submit button and show loading
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + orderData.translations.submitting;
+    
+    fetch(orderData.urls.request_refund, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(() => {
+                window.location.href = orderData.urls.orders;
+            }, 2000);
+        } else {
+            showAlert(data.message, 'danger');
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(orderData.translations.error_occurred, 'danger');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    });
+});
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

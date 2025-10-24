@@ -1,0 +1,1845 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .date-selector {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .date-btn {
+            border-radius: 8px;
+            padding: 0.6rem 1.5rem;
+            margin: 0 0.25rem;
+            border: 2px solid var(--accent-blue);
+            background: white;
+            color: var(--accent-blue);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .date-btn.active {
+            background: linear-gradient(135deg, var(--accent-blue), #60a5fa);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .date-btn:hover {
+            background: var(--accent-blue);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .custom-date-input {
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            padding: 0.6rem 1rem;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .custom-date-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        .preparation-item {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            border: none;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .preparation-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Enhanced Grid Card Styling - Orders Design */
+        .preparation-grid-card {
+            transition: all 0.3s ease !important;
+            border: 1px solid #e3f2fd !important;
+            background: #ffffff !important;
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+            position: relative !important;
+            height: fit-content !important;
+            margin-bottom: 0 !important;
+        }
+
+        .preparation-grid-card:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+            border-color: var(--bs-primary) !important;
+        }
+
+        .preparation-grid-card.pending {
+            border-left: 4px solid #ffc107 !important;
+        }
+
+        .preparation-grid-card.prepared {
+            border-left: 4px solid #198754 !important;
+        }
+
+        .preparation-grid-card.pending:hover {
+            border-left-color: #e55925;
+            box-shadow: 0 16px 48px rgba(255, 107, 53, 0.15);
+        }
+
+        .preparation-grid-card.prepared:hover {
+            border-left-color: #17a085;
+            box-shadow: 0 16px 48px rgba(32, 201, 151, 0.15);
+        }
+
+        .preparation-grid-card.pending::before {
+            content: "PENDING";
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c42);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 2;
+            box-shadow: 0 3px 12px rgba(255, 107, 53, 0.4);
+        }
+
+        .preparation-grid-card.prepared::before {
+            content: "COMPLETED";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #20c997, #38d9a9);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(32, 201, 151, 0.4);
+        }
+
+        .card-header-preparation {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 1rem !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+
+        .item-title-section {
+            flex-grow: 1;
+            padding-right: 16px;
+            min-width: 0;
+        }
+
+        .item-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0d6efd;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .item-arabic-title {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-style: italic;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .total-quantity-badge {
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+            min-width: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+        }
+
+        .preparation-grid-card.pending .total-quantity-badge {
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+        }
+
+        .preparation-grid-card.prepared .total-quantity-badge {
+            background: linear-gradient(135deg, #198754, #20c997);
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+        }
+
+        .total-quantity-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.125rem;
+        }
+
+        .total-quantity-label {
+            font-size: 0.6rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+        }
+
+        .status-badge.pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-badge.prepared {
+            background: #198754;
+            color: white;
+        }
+
+        /* Order Items Preview Styling */
+        .order-items-preview {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            border: 1px solid #e9ecef;
+            margin-bottom: 1rem;
+        }
+
+        .receipt-items {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.85rem;
+        }
+
+        .receipt-item {
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .receipt-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .receipt-item.item-prepared {
+            opacity: 0.8;
+            background: rgba(25, 135, 84, 0.1);
+            border-radius: 0.25rem;
+            padding: 0.25rem;
+        }
+
+        .item-line {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quantity {
+            font-weight: 700;
+            color: #0d6efd;
+            font-size: 0.9rem;
+            min-width: 35px;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #333;
+            flex-grow: 1;
+            transition: color 0.3s ease;
+        }
+
+        .special-request {
+            margin-top: 0.25rem;
+            margin-left: 35px;
+            padding: 0.25rem 0.5rem;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(238, 90, 36, 0.3);
+        }
+
+        .preparation-grid-card .card-footer {
+            padding: 0.75rem 1rem;
+        }
+
+        .preparation-grid-card .btn-sm {
+            font-size: 0.8rem;
+            padding: 0.375rem 0.75rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .preparation-grid-card .card-body {
+                padding: 1rem 0.75rem;
+            }
+            
+            .preparation-grid-card .card-footer {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .receipt-items {
+                font-size: 0.8rem;
+            }
+            
+            .quantity {
+                font-size: 0.85rem;
+                min-width: 30px;
+            }
+            
+            .special-request {
+                margin-left: 30px;
+                font-size: 0.75rem;
+            }
+        }
+
+        .order-items-table {
+            width: 100%;
+            margin: 0;
+            background: white;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .order-items-table tbody tr {
+            border-bottom: 2px solid #f1f5f9 !important;
+            transition: all 0.2s ease;
+        }
+
+        .order-items-table tbody tr:hover {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9) !important;
+            transform: translateX(2px);
+        }
+
+        .order-items-table tbody tr.prepared {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.06)) !important;
+            border-left: 6px solid #22c55e !important;
+        }
+
+        .order-items-table tbody tr.pending {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.06)) !important;
+            border-left: 6px solid #ef4444 !important;
+        }
+
+        .order-items-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .order-id-compact {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            display: inline-block;
+        }
+
+        .client-name-compact {
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .quantity-compact {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-align: center;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            display: inline-block;
+        }
+
+        .status-compact {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-compact.prepared {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .status-compact.pending {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .special-request-compact {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            font-size: 0.8rem;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.2);
+        }
+
+        .action-buttons-compact {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn-compact {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            min-width: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .action-btn-compact:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+        .btn-success.action-btn-compact:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            border-color: #15803d;
+        }
+
+        .btn-outline-primary.action-btn-compact:hover {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #2563eb;
+        }
+
+        .btn-outline-warning.action-btn-compact:hover {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #d97706;
+        }
+
+        .btn-outline-danger.action-btn-compact:hover {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #dc2626;
+        }
+
+        .grid-container {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)) !important;
+            gap: 24px !important;
+            padding: 24px !important;
+            max-width: 100% !important;
+        }
+
+        /* Enhanced Responsive Grid - Better Column Distribution */
+        @media (min-width: 1600px) {
+            .grid-container {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 28px !important;
+                padding: 32px !important;
+            }
+        }
+
+        @media (min-width: 1200px) and (max-width: 1599px) {
+            .grid-container {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 26px !important;
+                padding: 28px !important;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 22px !important;
+                padding: 20px !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .grid-container {
+                grid-template-columns: 1fr !important;
+                gap: 18px !important;
+                padding: 16px !important;
+            }
+            
+            .card-header-preparation {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .total-quantity-badge {
+                align-self: flex-end;
+                font-size: 1.5rem;
+                padding: 0.75rem 1.25rem;
+            }
+            
+            .total-quantity-number {
+                font-size: 1.8rem;
+            }
+            
+            .action-buttons-compact {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .action-btn-compact {
+                width: 100%;
+            }
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--light-bg);
+        }
+
+        .item-info {
+            flex-grow: 1;
+        }
+
+        .item-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
+        }
+
+        .item-arabic {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+
+        .quantity-section {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .quantity-badge {
+            background: linear-gradient(135deg, var(--accent-blue), #60a5fa);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .order-count {
+            background: var(--light-bg);
+            color: var(--text-muted);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .preparation-summary {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-text {
+            font-size: 1rem;
+            color: var(--text-dark);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .summary-breakdown {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+        }
+
+        .special-requests {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 4px solid var(--warning-color);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+            border: 1px solid #fbbf24;
+        }
+
+        .special-requests-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .special-requests-count {
+            background: var(--warning-color);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .special-request-item {
+            font-size: 0.9rem;
+            color: #92400e;
+            margin-bottom: 0.6rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 6px;
+            border-left: 3px solid var(--warning-color);
+            position: relative;
+            padding-left: 1rem;
+        }
+
+        .special-request-item:before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            color: var(--warning-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .special-request-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-priority {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--success-color);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .item-priority.high {
+            background: var(--danger-color);
+        }
+
+        .item-priority.medium {
+            background: var(--warning-color);
+        }
+
+        .no-items {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+        }
+
+        .no-items i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--border-color);
+        }
+
+        .summary-stats {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--success-color);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .preparation-title {
+            color: var(--primary-navy);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .preparation-subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        /* Table styling improvements */
+        .table-bordered {
+            border: 2px solid var(--border-color);
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid var(--border-color);
+        }
+
+        .table thead th {
+            border-bottom: 2px solid var(--accent-blue);
+            background: var(--primary-navy) !important;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+        }
+
+        .item-group-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-left: 4px solid var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .total-quantity-badge {
+            background: linear-gradient(135deg, var(--success-color), #20c997);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(32, 201, 151, 0.3);
+        }
+
+        /* Button group styling for actions */
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-group-sm .btn i {
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .preparation-item {
+                padding: 1rem;
+            }
+            
+            .date-btn {
+                margin: 0.25rem 0;
+                width: 100%;
+            }
+            
+            .custom-date-input {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+
+            .stat-item {
+                padding: 0.5rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* CRITICAL GRID OVERRIDES - FORCE BOOTSTRAP GRID LAYOUT */
+        #preparationContainer .row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            margin: 0 !important;
+            gap: 1rem !important;
+        }
+
+        #preparationContainer .preparation-card {
+            flex: 0 0 auto !important;
+            width: calc(33.333% - 0.67rem) !important;
+            padding: 0 !important;
+        }
+
+        #preparationContainer .preparation-grid-card {
+            border: 1px solid #e3f2fd !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            background: #ffffff !important;
+            border-radius: 0.5rem !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* FORCE RESPONSIVE GRID COLUMNS */
+        @media (min-width: 1600px) {
+            #preparationContainer .preparation-card {
+                width: calc(25% - 0.75rem) !important;
+            }
+        }
+
+        @media (min-width: 1200px) and (max-width: 1599px) {
+            #preparationContainer .preparation-card {
+                width: calc(33.333% - 0.67rem) !important;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1199px) {
+            #preparationContainer .preparation-card {
+                width: calc(50% - 0.5rem) !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            #preparationContainer .preparation-card {
+                width: 100% !important;
+            }
+        }
+    </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-calendar-check me-3" style="font-size: 2rem; color: var(--accent-blue);"></i>
+            <div>
+                <h1 class="preparation-title">Kitchen Preparation</h1>
+                <p class="preparation-subtitle mb-0">Aggregated order items by delivery date</p>
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-secondary" onclick="reloadPreparationData()" id="reloadBtn" title="Reload Preparation Data">
+                <i class="bi bi-arrow-clockwise me-2"></i>Reload
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="fade-in">
+    <!-- Date Selector -->
+    <div class="content-card mb-4">
+        <div class="card-body">
+            <div class="date-selector">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex flex-wrap align-items-center">
+                            <button class="btn date-btn {% if selected_date == 'today' %}active{% endif %}" 
+                                    onclick="filterByDate('today')">
+                                <i class="bi bi-calendar-day me-1"></i> Today
+                            </button>
+                            <button class="btn date-btn {% if selected_date == 'tomorrow' %}active{% endif %}" 
+                                    onclick="filterByDate('tomorrow')">
+                                <i class="bi bi-calendar-plus me-1"></i> Tomorrow
+                            </button>
+                            <input type="date" 
+                                   class="form-control custom-date-input" 
+                                   value="{% if selected_date not in ['today', 'tomorrow'] %}{{ selected_date }}{% endif %}"
+                                   onchange="filterByCustomDate(this.value)"
+                                   style="width: auto; display: inline-block;">
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <strong class="text-muted">Showing: 
+                            {% if selected_date == 'today' %}
+                                <span class="text-primary">Today ({{ today }})</span>
+                            {% elif selected_date == 'tomorrow' %}
+                                <span class="text-info">Tomorrow ({{ tomorrow }})</span>
+                            {% else %}
+                                <span class="text-success">{{ selected_date }}</span>
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if preparation_items %}
+        <!-- Summary Statistics -->
+        <div class="content-card mb-4">
+            <div class="card-body">
+                <div class="summary-stats">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ preparation_items|length }}</div>
+                                <div class="stat-label">Unique Items</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                {% set total_portions = 0 %}
+                                {% for item in preparation_items %}
+                                    {% for order_item in item.order_items %}
+                                        {% set total_portions = total_portions + order_item.quantity %}
+                                    {% endfor %}
+                                {% endfor %}
+                                <div class="stat-value">{{ total_portions }}</div>
+                                <div class="stat-label">Total Portions</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                {% set unique_orders = [] %}
+                                {% for item in preparation_items %}
+                                    {% for order_item in item.order_items %}
+                                        {% if order_item.order_id not in unique_orders %}
+                                            {% set _ = unique_orders.append(order_item.order_id) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                                <div class="stat-value">{{ unique_orders|length }}</div>
+                                <div class="stat-label">Total Orders</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                {% set special_requests_count = 0 %}
+                                {% for item in preparation_items %}
+                                    {% for order_item in item.order_items %}
+                                        {% if order_item.special_request %}
+                                            {% set special_requests_count = special_requests_count + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                                <div class="stat-value">{{ special_requests_count }}</div>
+                                <div class="stat-label">Special Requests</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preparation Items Grid -->
+        <div class="content-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>Preparation Items
+                </h5>
+            </div>
+            <div class="card-body" id="preparationContainer">
+                <div class="row g-3">
+                    {% for item in preparation_items %}
+                        {% set total_item_quantity = item.order_items|sum(attribute='quantity') %}
+                        {% set has_pending = item.order_items|selectattr('preparation_status', 'ne', 'prepared')|list|length > 0 %}
+                        
+                        <div class="col-xl-4 col-lg-6 col-md-6 preparation-card">
+                            <div class="card h-100 preparation-grid-card {% if has_pending %}pending{% else %}prepared{% endif %}" 
+                                 id="preparation-card-{{ item.menu_item_name|replace(' ', '_') }}"
+                                 data-item-name="{{ item.menu_item_name }}"
+                                 data-has-pending="{{ has_pending|lower }}">
+                                
+                                <!-- Status Badge -->
+                                {% if has_pending %}
+                                    <span class="badge status-badge pending">
+                                        <i class="bi bi-clock me-1"></i>Pending
+                                    </span>
+                                {% else %}
+                                    <span class="badge status-badge prepared">
+                                        <i class="bi bi-check-circle me-1"></i>Prepared
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Card Header -->
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div class="item-title-section">
+                                        <h6 class="mb-1 item-title">{{ item.menu_item_name }}</h6>
+                                        {% if item.menu_item_arabic_name %}
+                                            <small class="item-arabic-title">{{ item.menu_item_arabic_name }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="total-quantity-badge">
+                                        <div class="total-quantity-number">{{ total_item_quantity }}</div>
+                                        <div class="total-quantity-label">Total</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <!-- Order Items Preview -->
+                                    <div class="order-items-preview">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <small class="text-muted fw-bold">Order Items</small>
+                                        </div>
+                                        <div class="receipt-items">
+                                            {% for order_item in item.order_items %}
+                                            <div class="receipt-item d-flex justify-content-between align-items-start mb-2 p-2 rounded {% if order_item.preparation_status == 'prepared' %}item-prepared bg-light{% endif %}"
+                                                 {% if order_item.preparation_status == 'prepared' %}style="text-decoration: line-through; opacity: 0.7;"{% endif %}>
+                                                <div class="item-details flex-grow-1">
+                                                    <div class="item-line">
+                                                        <span class="quantity fw-bold">{{ order_item.quantity }}x</span>
+                                                        <span class="item-name ms-2 {% if order_item.preparation_status == 'prepared' %}text-success{% endif %}">
+                                                            {{ order_item.name }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="order-info text-muted small">
+                                                        Order #{{ order_item.order_id }} - {{ order_item.client_name }}
+                                                    </div>
+                                                    {% if order_item.special_request %}
+                                                    <div class="special-request mt-1">
+                                                        <small class="text-warning">
+                                                            <i class="bi bi-exclamation-triangle me-1"></i>{{ order_item.special_request }}
+                                                        </small>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="item-action ms-2">
+                                                    {% if order_item.preparation_status != 'prepared' %}
+                                                        <button class="btn btn-success btn-sm"
+                                                                data-order-item-id="{{ order_item.order_item_id }}"
+                                                                data-order-id="{{ order_item.order_id }}"
+                                                                onclick="markAsPrepared(this)"
+                                                                title="Mark as Prepared">
+                                                            <i class="bi bi-check-circle"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <button class="btn btn-warning btn-sm"
+                                                                data-order-item-id="{{ order_item.order_item_id }}"
+                                                                data-order-id="{{ order_item.order_id }}"
+                                                                onclick="redoPreparedItem(this)"
+                                                                title="Redo - Mark as Pending">
+                                                            <i class="bi bi-arrow-clockwise"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Summary Info -->
+                                    <div class="row text-center mb-3">
+                                        <div class="col-6">
+                                            <div class="border-end">
+                                                <h6 class="mb-1">{{ item.order_items|selectattr('preparation_status', 'equalto', 'prepared')|list|length }}</h6>
+                                                <small class="text-muted">Prepared</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <h6 class="mb-1">{{ item.order_items|selectattr('preparation_status', 'ne', 'prepared')|list|length }}</h6>
+                                            <small class="text-muted">Pending</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Card Footer -->
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i>Delivery: {{ item.delivery_date }}
+                                        </small>
+                                        {% if item.special_requests %}
+                                            <span class="text-warning small">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>Special requests
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="content-card">
+            <div class="card-body">
+                <div class="no-items">
+                    <i class="bi bi-clipboard-x"></i>
+                    <h3 class="mt-3 mb-2">No items to prepare</h3>
+                    <p class="text-muted">No orders found for 
+                        {% if selected_date == 'today' %}
+                            today
+                        {% elif selected_date == 'tomorrow' %}
+                            tomorrow
+                        {% else %}
+                            {{ selected_date }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function filterByDate(dateType) {
+    const url = new URL(window.location);
+    url.searchParams.set('delivery_date', dateType);
+    window.location.href = url.toString();
+}
+
+function filterByCustomDate(dateValue) {
+    if (dateValue) {
+        const url = new URL(window.location);
+        url.searchParams.set('delivery_date', dateValue);
+        window.location.href = url.toString();
+    }
+}
+
+// Mark item as prepared
+function markAsPrepared(button) {
+    const orderItemId = button.getAttribute('data-order-item-id');
+    const orderId = button.getAttribute('data-order-id');
+    
+    if (!orderItemId || !orderId) {
+        showNotification('error', 'Missing order information!');
+        return;
+    }
+    
+    // Show loading state
+    button.disabled = true;
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Processing...';
+    
+    fetch('/preparation/mark_prepared', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            order_item_id: orderItemId,
+            order_id: orderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Find the button that was clicked and update the specific item
+            const orderItemButton = document.querySelector(`button[data-order-item-id="${orderItemId}"]`);
+            if (orderItemButton) {
+                // Find the receipt item container
+                const receiptItem = orderItemButton.closest('.receipt-item');
+                if (receiptItem) {
+                    // Mark as prepared - add visual styling
+                    receiptItem.classList.add('item-prepared', 'bg-light');
+                    receiptItem.style.textDecoration = 'line-through';
+                    receiptItem.style.opacity = '0.7';
+                    
+                    // Update button to show Redo option
+                    orderItemButton.className = 'btn btn-warning btn-sm';
+                    orderItemButton.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                    orderItemButton.setAttribute('onclick', 'redoPreparedItem(this)');
+                    orderItemButton.setAttribute('title', 'Redo - Mark as Pending');
+                    orderItemButton.disabled = false; // Re-enable the button
+                    
+                    // Update item name color
+                    const itemName = receiptItem.querySelector('.item-name');
+                    if (itemName) {
+                        itemName.classList.add('text-success');
+                    }
+                }
+                
+                // Check if parent preparation card needs status update
+                const preparationCard = orderItemButton.closest('.preparation-grid-card');
+                if (preparationCard) {
+                    const allItems = preparationCard.querySelectorAll('.receipt-item');
+                    const preparedItems = preparationCard.querySelectorAll('.receipt-item.item-prepared');
+                    
+                    // Update card status badge and class if all items are prepared
+                    if (preparedItems.length === allItems.length) {
+                        preparationCard.className = preparationCard.className.replace('pending', 'prepared');
+                        preparationCard.setAttribute('data-has-pending', 'false');
+                        
+                        // Update status badge
+                        const statusBadge = preparationCard.querySelector('.status-badge');
+                        if (statusBadge) {
+                            statusBadge.className = 'badge status-badge prepared';
+                            statusBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Prepared';
+                        }
+                    }
+                    
+                    // Update summary counters
+                    const preparedCount = preparationCard.querySelector('.col-6 h6');
+                    const pendingCount = preparationCard.querySelector('.col-6:last-child h6');
+                    if (preparedCount && pendingCount) {
+                        preparedCount.textContent = preparedItems.length;
+                        pendingCount.textContent = allItems.length - preparedItems.length;
+                    }
+                }
+            }
+            
+            showNotification('success', 'Order item marked as prepared successfully!');
+            
+            // Check if any orders are now fully prepared
+            if (data.orders_ready && data.orders_ready.length > 0) {
+                showOrdersReadyNotification(data.orders_ready);
+            }
+            
+            // Trigger data refresh after a short delay
+            setTimeout(() => {
+                refreshPreparationData();
+            }, 1000);
+        } else {
+            showNotification('error', data.message || 'Failed to mark item as prepared!');
+            // Restore button state
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Error marking item as prepared!');
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    });
+}
+
+// Redo prepared item (mark as pending)
+function redoPreparedItem(button) {
+    const orderItemId = button.getAttribute('data-order-item-id');
+    const orderId = button.getAttribute('data-order-id');
+    
+    if (!orderItemId || !orderId) {
+        showNotification('error', 'Missing order information!');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to mark this item as pending again?')) {
+        return;
+    }
+    
+    // Show loading state
+    button.disabled = true;
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Processing...';
+    
+    fetch('/preparation/redo_prepared', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+            order_item_id: orderItemId,
+            order_id: orderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Find the button that was clicked and update the specific item
+            const orderItemButton = document.querySelector(`button[data-order-item-id="${orderItemId}"]`);
+            if (orderItemButton) {
+                // Find the receipt item container
+                const receiptItem = orderItemButton.closest('.receipt-item');
+                if (receiptItem) {
+                    // Mark as pending - remove visual styling
+                    receiptItem.classList.remove('item-prepared', 'bg-light');
+                    receiptItem.style.textDecoration = 'none';
+                    receiptItem.style.opacity = '1';
+                    
+                    // Update button to show Mark as Prepared option
+                    orderItemButton.className = 'btn btn-success btn-sm';
+                    orderItemButton.innerHTML = '<i class="bi bi-check-circle"></i>';
+                    orderItemButton.setAttribute('onclick', 'markAsPrepared(this)');
+                    orderItemButton.setAttribute('title', 'Mark as Prepared');
+                    orderItemButton.disabled = false; // Re-enable the button
+                    
+                    // Update item name color
+                    const itemName = receiptItem.querySelector('.item-name');
+                    if (itemName) {
+                        itemName.classList.remove('text-success');
+                    }
+                }
+                
+                // Update parent preparation card status - always set to pending if any item is pending
+                const preparationCard = orderItemButton.closest('.preparation-grid-card');
+                if (preparationCard) {
+                    preparationCard.className = preparationCard.className.replace('prepared', 'pending');
+                    preparationCard.setAttribute('data-has-pending', 'true');
+                    
+                    // Update status badge
+                    const statusBadge = preparationCard.querySelector('.status-badge');
+                    if (statusBadge) {
+                        statusBadge.className = 'badge status-badge pending';
+                        statusBadge.innerHTML = '<i class="bi bi-clock me-1"></i>Pending';
+                    }
+                    
+                    // Update summary counters
+                    const allItems = preparationCard.querySelectorAll('.receipt-item');
+                    const preparedItems = preparationCard.querySelectorAll('.receipt-item.item-prepared');
+                    const preparedCount = preparationCard.querySelector('.col-6 h6');
+                    const pendingCount = preparationCard.querySelector('.col-6:last-child h6');
+                    if (preparedCount && pendingCount) {
+                        preparedCount.textContent = preparedItems.length;
+                        pendingCount.textContent = allItems.length - preparedItems.length;
+                    }
+                }
+            }
+            
+            showNotification('success', 'Order item marked as pending successfully!');
+            
+            // Trigger data refresh after a short delay to reorder items
+            setTimeout(() => {
+                refreshPreparationData();
+            }, 1000);
+        } else {
+            showNotification('error', data.message || 'Failed to redo item!');
+            // Restore button state
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Error redoing item!');
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    });
+}
+
+// View order details
+function viewOrderDetails(button) {
+    const orderId = button.dataset.orderId;
+    
+    // Open order details in a new tab/window
+    window.open(`/orders/view/${orderId}`, '_blank');
+}
+
+// Show notification when orders are ready
+function showOrdersReadyNotification(orders) {
+    const orderNumbers = orders.map(o => `#${o.id}`).join(', ');
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 400px;';
+    notification.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Orders Ready!</strong><br>
+        Order(s) ${orderNumbers} are now fully prepared and ready for delivery.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 10000);
+}
+
+// Auto-refresh every 5 minutes to keep data current
+setTimeout(function() {
+    window.location.reload();
+}, 300000);
+
+// Get CSRF token helper function
+function getCsrfToken() {
+    const token = document.querySelector('meta[name="csrf-token"]');
+    return token ? token.getAttribute('content') : '';
+}
+
+// Alias for compatibility - refreshPreparationData calls reloadPreparationData
+function refreshPreparationData() {
+    reloadPreparationData();
+}
+
+// Reload preparation data without page refresh
+function reloadPreparationData() {
+    // Get current URL parameters to maintain filters
+    const currentUrl = new URL(window.location.href);
+    const params = currentUrl.searchParams;
+    
+    // Build the reload URL with current parameters
+    let reloadUrl = '{{ url_for("preparation") }}';
+    if (params.toString()) {
+        reloadUrl += '?' + params.toString();
+    }
+    
+    // Add a timestamp to prevent caching and mark as AJAX request
+    const separator = params.toString() ? '&' : '?';
+    reloadUrl += separator + 'ajax_reload=1&t=' + Date.now();
+    
+    // Fetch new data silently
+    fetch(reloadUrl, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update preparation items using the new data
+            updatePreparationWithNewData(data);
+            
+            // Update statistics
+            updatePreparationStatsFromData(data);
+        } else {
+            console.error('Error reloading preparation data:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error reloading preparation data:', error);
+        // Fail silently - no user notification needed
+    });
+}
+
+// Update preparation data from JSON response
+function updatePreparationWithNewData(data) {
+    // Store current scroll position
+    const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
+    const preparationContainer = document.querySelector('#preparationContainer');
+    if (!preparationContainer) return;
+    
+    const gridContainer = preparationContainer.querySelector('.grid-container');
+    if (!gridContainer) return;
+    
+    // Build new grid HTML from data
+    const newGridHTML = buildPreparationGridFromData(data.preparation_items);
+    
+    // Update grid content smoothly
+    if (newGridHTML !== gridContainer.innerHTML) {
+        gridContainer.innerHTML = newGridHTML;
+    }
+    
+    // Restore scroll position
+    window.scrollTo(0, scrollPosition);
+}
+
+// Build grid HTML from preparation data (ordered by pending items first)
+function buildPreparationGridFromData(preparationItems) {
+    // Sort items to show pending preparation items first
+    const sortedItems = preparationItems.sort((a, b) => {
+        const aHasPending = a.order_items.some(item => item.preparation_status !== 'prepared');
+        const bHasPending = b.order_items.some(item => item.preparation_status !== 'prepared');
+        
+        // Pending items first (true = 1, false = 0, so we want pending first)
+        if (aHasPending && !bHasPending) return -1;
+        if (!aHasPending && bHasPending) return 1;
+        
+        // If both have same status, sort by menu item name
+        return a.menu_item_name.localeCompare(b.menu_item_name);
+    });
+    
+    let html = '';
+    
+    sortedItems.forEach(item => {
+        const totalQuantity = item.order_items.reduce((sum, orderItem) => sum + orderItem.quantity, 0);
+        const hasPending = item.order_items.some(orderItem => orderItem.preparation_status !== 'prepared');
+        
+        html += `
+            <div class="preparation-grid-card ${hasPending ? 'pending' : 'prepared'}" 
+                 id="preparation-card-${item.menu_item_name.replace(/\s+/g, '_')}"
+                 data-item-name="${item.menu_item_name}"
+                 data-has-pending="${hasPending}">
+                
+                <!-- Card Header -->
+                <div class="card-header-preparation">
+                    <div class="item-title-section">
+                        <h5 class="item-title">${item.menu_item_name}</h5>
+                        ${item.menu_item_arabic_name ? `<p class="item-arabic-title">${item.menu_item_arabic_name}</p>` : ''}
+                    </div>
+                    <div class="total-quantity-badge">
+                        <div class="total-quantity-number">${totalQuantity}</div>
+                        <div class="total-quantity-label">Total</div>
+                    </div>
+                </div>
+                
+                <!-- Card Body with Table -->
+                <div class="card-body p-0">
+                    <table class="order-items-table">
+                        <tbody>
+                            ${item.order_items.map(orderItem => buildOrderItemRowHTML(orderItem)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+// Build individual order item row HTML for table
+function buildOrderItemRowHTML(orderItem) {
+    const isPrepared = orderItem.preparation_status === 'prepared';
+    const statusClass = isPrepared ? 'prepared' : 'pending';
+    const statusIcon = isPrepared ? 'bi-check-circle' : 'bi-clock';
+    const statusText = isPrepared ? 'Prepared' : 'Pending';
+    
+    return `
+        <tr class="${statusClass}" id="order-item-row-${orderItem.order_item_id}">
+            <td style="width: 80px;">
+                <span class="order-id-compact">#${orderItem.order_id}</span>
+            </td>
+            
+            <td style="width: 120px;">
+                <div class="client-name-compact">${orderItem.client_name}</div>
+            </td>
+            
+            <td style="width: 60px; text-align: center;">
+                <span class="quantity-compact">${orderItem.quantity}X</span>
+            </td>
+            
+            <td style="width: 80px; text-align: center;">
+                <span class="status-compact ${statusClass}" id="status-badge-${orderItem.order_item_id}">
+                    <i class="bi ${statusIcon} me-1"></i>${statusText}
+                </span>
+            </td>
+            
+            <td>
+                ${orderItem.special_request ? `
+                    <div class="special-request-compact">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        ${orderItem.special_request}
+                    </div>
+                ` : ''}
+            </td>
+            
+            <td style="width: 200px;">
+                <div class="action-buttons-compact">
+                    ${buildActionButtonsCompactHTML(orderItem)}
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+// Build action buttons HTML for compact table layout
+function buildActionButtonsCompactHTML(orderItem) {
+    if (orderItem.preparation_status === 'prepared') {
+        let deleteButton = '';
+        if (orderItem.order_status === 'prepared' || orderItem.order_status === 'ready') {
+            deleteButton = `
+                <button class="btn btn-outline-danger btn-sm action-btn-compact" 
+                        data-order-id="${orderItem.order_id}"
+                        onclick="deleteOrderFromPreparation(this)"
+                        title="Delete Order">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+        }
+        
+        return `
+            <button class="btn btn-outline-warning btn-sm action-btn-compact" 
+                    data-order-item-id="${orderItem.order_item_id}"
+                    data-order-id="${orderItem.order_id}"
+                    onclick="redoPreparedItem(this)"
+                    title="Redo - Mark as Pending">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+            <button class="btn btn-outline-primary btn-sm action-btn-compact" 
+                    data-order-id="${orderItem.order_id}"
+                    onclick="viewOrderDetails(this)"
+                    title="View Order Details">
+                <i class="bi bi-eye"></i>
+            </button>
+            ${deleteButton}
+        `;
+    } else {
+        return `
+            <button class="btn btn-success btn-sm action-btn-compact" 
+                    data-order-item-id="${orderItem.order_item_id}"
+                    data-order-id="${orderItem.order_id}"
+                    onclick="markAsPrepared(this)"
+                    title="Mark as Prepared">
+                <i class="bi bi-check-lg"></i>
+            </button>
+            <button class="btn btn-outline-primary btn-sm action-btn-compact" 
+                    data-order-id="${orderItem.order_id}"
+                    onclick="viewOrderDetails(this)"
+                    title="View Order Details">
+                <i class="bi bi-eye"></i>
+            </button>
+        `;
+    }
+}
+
+// Update preparation statistics from data
+function updatePreparationStatsFromData(data) {
+    const preparationItems = data.preparation_items;
+    
+    // Calculate statistics
+    const uniqueItems = preparationItems.length;
+    let totalPortions = 0;
+    let specialRequestsCount = 0;
+    const uniqueOrders = new Set();
+    
+    preparationItems.forEach(item => {
+        item.order_items.forEach(orderItem => {
+            totalPortions += orderItem.quantity;
+            uniqueOrders.add(orderItem.order_id);
+            if (orderItem.special_request) {
+                specialRequestsCount++;
+            }
+        });
+    });
+    
+    // Update stat values
+    const statValues = document.querySelectorAll('.stat-value');
+    if (statValues[0]) statValues[0].textContent = uniqueItems;
+    if (statValues[1]) statValues[1].textContent = totalPortions;
+    if (statValues[2]) statValues[2].textContent = uniqueOrders.size;
+    if (statValues[3]) statValues[3].textContent = specialRequestsCount;
+}
+
+// Delete order from preparation interface
+function deleteOrderFromPreparation(button) {
+    const orderId = button.dataset.orderId;
+    
+    if (!confirm(`Are you sure you want to delete Order #${orderId}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    // Update UI immediately
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+    button.disabled = true;
+    
+    // Send delete request
+    fetch(`/orders/delete/${orderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove all rows for this order
+            const orderRows = document.querySelectorAll(`tr[id*="-${orderId}"]`);
+            orderRows.forEach(row => {
+                row.remove();
+            });
+            
+            // Reload data to refresh statistics and ensure consistency
+            setTimeout(() => {
+                reloadPreparationData();
+            }, 500);
+            
+            // Show success message
+            showNotification('success', data.message);
+        } else {
+            // Error - revert button state
+            button.innerHTML = '<i class="bi bi-trash"></i>';
+            button.disabled = false;
+            
+            showNotification('error', data.message || 'Error deleting order');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting order:', error);
+        // Revert button state on network error
+        button.innerHTML = '<i class="bi bi-trash"></i>';
+        button.disabled = false;
+        
+        showNotification('error', 'Network error. Please try again.');
+    });
+}
+
+// Show notification helper
+function showNotification(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const iconClass = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 400px;';
+    notification.innerHTML = `
+        <i class="bi ${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Auto-reload every 30 seconds
+let autoReloadInterval;
+
+function startAutoReload() {
+    // Clear any existing interval
+    if (autoReloadInterval) {
+        clearInterval(autoReloadInterval);
+    }
+    
+    // Set up new interval for 30 seconds
+    autoReloadInterval = setInterval(() => {
+        // Only auto-reload if no modals are open and user isn't actively typing
+        const openModals = document.querySelectorAll('.modal.show');
+        const activeInput = document.activeElement;
+        const isTyping = activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'TEXTAREA');
+        
+        if (openModals.length === 0 && !isTyping) {
+            reloadPreparationData();
+        }
+    }, 30000); // 30 seconds
+}
+
+// Stop auto-reload
+function stopAutoReload() {
+    if (autoReloadInterval) {
+        clearInterval(autoReloadInterval);
+        autoReloadInterval = null;
+    }
+}
+
+// Start auto-reload when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    startAutoReload();
+});
+
+// Pause auto-reload when user interacts with forms
+document.addEventListener('focus', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        stopAutoReload();
+    }
+}, true);
+
+// Resume auto-reload when user stops interacting
+document.addEventListener('blur', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setTimeout(startAutoReload, 2000); // Resume after 2 seconds of inactivity
+    }
+}, true);
+
+// Force Grid Layout - Override any conflicting styles
+function forceGridLayout() {
+    const gridContainer = document.querySelector('#preparationContainer .row');
+    if (gridContainer) {
+        // Force Bootstrap grid styles via JavaScript
+        gridContainer.style.display = 'flex';
+        gridContainer.style.flexWrap = 'wrap';
+        gridContainer.style.margin = '0';
+        gridContainer.style.gap = '1rem';
+        
+        // Force cards to be proper grid items with responsive behavior
+        const cards = gridContainer.querySelectorAll('.preparation-card');
+        cards.forEach(card => {
+            card.style.flex = '0 0 auto';
+            card.style.padding = '0';
+            
+            // Apply responsive behavior based on screen width
+            const width = window.innerWidth;
+            if (width >= 1600) {
+                card.style.width = 'calc(25% - 0.75rem)';
+            } else if (width >= 1200) {
+                card.style.width = 'calc(33.333% - 0.67rem)';
+            } else if (width >= 768) {
+                card.style.width = 'calc(50% - 0.5rem)';
+            } else {
+                card.style.width = '100%';
+            }
+            
+            // Style the actual card
+            const cardElement = card.querySelector('.preparation-grid-card');
+            if (cardElement) {
+                cardElement.style.border = '1px solid #e3f2fd';
+                cardElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                cardElement.style.background = '#ffffff';
+                cardElement.style.borderRadius = '0.5rem';
+                cardElement.style.transition = 'all 0.3s ease';
+            }
+        });
+        
+        // Update grid on window resize
+        const updateGridColumns = () => {
+            const width = window.innerWidth;
+            cards.forEach(card => {
+                if (width >= 1600) {
+                    card.style.width = 'calc(25% - 0.75rem)';
+                } else if (width >= 1200) {
+                    card.style.width = 'calc(33.333% - 0.67rem)';
+                } else if (width >= 768) {
+                    card.style.width = 'calc(50% - 0.5rem)';
+                } else {
+                    card.style.width = '100%';
+                }
+            });
+        };
+        
+        window.addEventListener('resize', updateGridColumns);
+        
+        console.log('Bootstrap grid layout forced!', {
+            container: gridContainer,
+            cardsCount: cards.length,
+            currentWidth: window.innerWidth
+        });
+    }
+}
+
+// Execute on DOM ready and window load
+document.addEventListener('DOMContentLoaded', forceGridLayout);
+window.addEventListener('load', forceGridLayout);
+
+// Also force after a short delay to ensure all styles are loaded
+setTimeout(forceGridLayout, 100);
+setTimeout(forceGridLayout, 500);
+</script>
+{% endblock %}

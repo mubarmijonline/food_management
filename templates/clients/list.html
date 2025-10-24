@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Clients Management - Food Management System{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-people me-3"></i>Clients Management</h1>
+                <p class="text-muted mb-0">Manage your customers and view their analytics</p>
+            </div>
+            <div>
+                <a href="{{ url_for('create_order') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>New Order
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="count-display">{{ stats.total_clients or 0 }}</h3>
+                        <p class="stats-label mb-0">Total Clients</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-people" style="font-size: 2rem; color: var(--accent-blue);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="count-display text-success">{{ stats.active_clients or 0 }}</h3>
+                        <p class="stats-label mb-0">Active Clients</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-person-check" style="font-size: 2rem; color: var(--success-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="large-number text-success">${{ "%.2f"|format(stats.total_revenue or 0) }}</h3>
+                        <p class="stats-label mb-0">Total Revenue</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-currency-dollar" style="font-size: 2rem; color: var(--success-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="medium-number text-info">{{ stats.new_clients_month or 0 }}</h3>
+                        <p class="stats-label mb-0">New This Month</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-person-plus" style="font-size: 2rem; color: var(--info-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Clients and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <!-- Clients Table -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list me-2"></i>All Clients</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="clientSearch" placeholder="Search clients...">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="orderFilter">
+                                <option value="">All Clients</option>
+                                <option value="active">Active Clients (With Orders)</option>
+                                <option value="inactive">Inactive Clients (No Orders)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {% if clients %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="clientsTable">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Contact</th>
+                                    <th class="text-center">Orders</th>
+                                    <th class="text-end">Total Spent</th>
+                                    <th class="text-end">Avg Order</th>
+                                    <th class="text-center">Last Order</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in clients %}
+                                <tr data-orders="{{ client.total_orders }}">
+                                    <td>
+                                        <div>
+                                            <strong>{{ client.name }}</strong>
+                                            {% if client.address %}
+                                            <br><small class="text-muted">{{ client.address[:30] }}{% if client.address|length > 30 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <i class="bi bi-phone me-1"></i>{{ client.mobile }}
+                                            {% if client.email %}
+                                            <br><small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ client.email }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">{{ client.total_orders }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="table-currency">${{ "%.2f"|format(client.total_spent) }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="table-currency">${{ "%.2f"|format(client.avg_order_value) }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if client.last_order_date and client.total_orders > 0 %}
+                                            {{ client.last_order_date.strftime('%m/%d/%Y') }}
+                                        {% else %}
+                                            <span class="text-muted">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('client_details', client_id=client.id) }}" class="btn btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-people" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        <p class="text-muted mt-3 mb-0">No clients found</p>
+                        <small class="text-muted">Clients will appear here after you create orders</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Top Clients -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Top Clients by Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.top_clients %}
+                        {% for client in stats.top_clients[:5] %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 {% if loop.last %}mb-0{% endif %}">
+                            <div>
+                                <strong>{{ client.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ client.mobile }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ client.total_orders }} orders</span>
+                                <br>
+                                <small class="table-currency">${{ "%.2f"|format(client.total_spent) }}</small>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr class="my-2">{% endif %}
+                        {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Analytics -->
+            <div class="content-card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Quick Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>Avg Client Value:</strong> <span class="table-currency">${{ "%.2f"|format(stats.avg_client_value or 0) }}</span></li>
+                        <li><strong>Active Rate:</strong> {{ "%.1f"|format((stats.active_clients / stats.total_clients * 100) if stats.total_clients > 0 else 0) }}%</li>
+                        <li><strong>New This Month:</strong> <span class="medium-number text-info">{{ stats.new_clients_month or 0 }}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('clientSearch');
+    const orderFilter = document.getElementById('orderFilter');
+    const clientsTable = document.getElementById('clientsTable');
+    
+    if (searchInput && clientsTable) {
+        function filterClients() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const orderFilterValue = orderFilter.value;
+            const rows = clientsTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const clientText = row.cells[0].textContent.toLowerCase();
+                const contactText = row.cells[1].textContent.toLowerCase();
+                const orderCount = parseInt(row.getAttribute('data-orders')) || 0;
+                
+                const matchesSearch = clientText.includes(searchTerm) || contactText.includes(searchTerm);
+                let matchesFilter = true;
+                
+                if (orderFilterValue === 'active') {
+                    matchesFilter = orderCount > 0;
+                } else if (orderFilterValue === 'inactive') {
+                    matchesFilter = orderCount === 0;
+                }
+                
+                row.style.display = (matchesSearch && matchesFilter) ? '' : 'none';
+            });
+        }
+        
+        searchInput.addEventListener('input', filterClients);
+        orderFilter.addEventListener('change', filterClients);
+    }
+});
+</script>
+{% endblock %}

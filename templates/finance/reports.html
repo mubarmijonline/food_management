@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+
+{% block title %}Finance Reports - Food Management System{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-graph-up-arrow me-3"></i>Finance Reports</h1>
+                <p class="tex-0">Generate financial reports and analysis</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                    <i class="bi bi-download me-2"></i>Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card revenue">
+                <div class="stats-content">
+                    <div class="stats-value text-success" id="totalRevenue">${{ "%.2f"|format(data.completed_revenue if data else 0) }}</div>
+                    <div class="stats-label">Revenue (Completed)</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card expenses">
+                <div class="stats-content">
+                    <div class="stats-value text-danger" id="totalExpenses">${{ "%.2f"|format(data.total_expenses if data else 0) }}</div>
+                    <div class="stats-label">Total Expenses</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card profit">
+                <div class="stats-content">
+                    <div class="stats-value {% if data and data.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}" id="netProfit">${{ "%.2f"|format(data.profit_loss if data else 0) }}</div>
+                    <div class="stats-label">Net Profit</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card margin">
+                <div class="stats-content">
+                    <div class="stats-value percentage-display {% if data and data.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}" id="profitMargin">
+                        {% if data and data.completed_revenue > 0 %}
+                            {{ "%.1f"|format((data.profit_loss / data.completed_revenue) * 100) }}%
+                        {% else %}
+                            0.0%
+                        {% endif %}
+                    </div>
+                    <div class="stats-label">Profit Margin</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-percent"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refund Statistics Row -->
+    {% if data and data.total_refunds %}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card refunds">
+                <div class="stats-content">
+                    <div class="stats-value text-warning" id="totalRefunds">${{ "%.2f"|format(data.total_refunds if data else 0) }}</div>
+                    <div class="stats-label">Total Refunds</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-arrow-return-left"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card refund-rate">
+                <div class="stats-content">
+                    <div class="stats-value percentage-display text-info" id="refundRate">
+                        {% if data and data.total_revenue > 0 %}
+                            {{ "%.1f"|format((data.total_refunds / data.total_revenue) * 100) }}%
+                        {% else %}
+                            0.0%
+                        {% endif %}
+                    </div>
+                    <div class="stats-label">Refund Rate</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-percent"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card net-revenue">
+                <div class="stats-content">
+                    <div class="stats-value text-primary" id="netRevenue">${{ "%.2f"|format(data.net_revenue if data else 0) }}</div>
+                    <div class="stats-label">Net Revenue (After Refunds)</div>
+                    <div class="stats-period">{{ data.period_name if data else 'Current Period' }}</div>
+                </div>
+                <div class="stats-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dashboard Summary -->
+    {% if data %}
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Financial Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Revenue Summary</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total Orders:</strong> <span class="medium-number text-primary">{{ data.order_count }}</span></li>
+                                <li><strong>Completed Orders:</strong> <span class="medium-number text-success">{{ data.completed_count }}</span></li>
+                                <li><strong>Total Revenue:</strong> <span class="table-currency">${{ "%.2f"|format(data.total_revenue) }}</span></li>
+                                <li><strong>Completed Revenue:</strong> <span class="table-currency">${{ "%.2f"|format(data.completed_revenue) }}</span></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Expense Summary</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total Expenses:</strong> <span class="medium-number text-info">{{ data.expense_count }}</span></li>
+                                <li><strong>Amount Spent:</strong> <span class="table-currency text-danger">${{ "%.2f"|format(data.total_expenses) }}</span></li>
+                                <li><strong>Net Profit:</strong> <span class="table-currency {% if data.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">${{ "%.2f"|format(data.profit_loss) }}</span></li>
+                                <li><strong>Period:</strong> {{ data.period_start }} to {{ data.period_end }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Top Expense Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if data.top_expense_categories %}
+                        {% for category in data.top_expense_categories %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ category.category_name }}</span>
+                            <span class="badge bg-primary fs-6 p-2">${{ "%.2f"|format(category.total_amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No expenses recorded for this period.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Report Generation Form -->
+    <div class="content-card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-file-bar-graph me-2"></i>Generate Financial Report</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('generate_finance_report') }}" target="_blank">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="report_type" class="form-label">Report Type</label>
+                            <select class="form-select" id="report_type" name="report_type" required>
+                                <option value="">Select Report Type</option>
+                                <option value="profit_loss">Profit & Loss Statement</option>
+                                <option value="revenue_analysis">Revenue Analysis</option>
+                                <option value="expense_breakdown">Expense Breakdown</option>
+                                <option value="refund_analysis">Refund Analysis</option>
+                                <option value="daily_summary">Daily Sales Summary</option>
+                                <option value="menu_performance">Menu Item Performance</option>
+                                <option value="monthly_trends">Monthly Trends</option>
+                                <option value="tax_summary">Tax Summary</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label for="format" class="form-label">Format</label>
+                            <select class="form-select" id="format" name="format">
+                                <option value="html">Web View</option>
+                                <option value="pdf">PDF</option>
+                                <option value="excel">Excel</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-play-circle me-2"></i>Generate Report
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="setQuickDateRange('today')">
+                                Today
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="setQuickDateRange('week')">
+                                This Week
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="setQuickDateRange('month')">
+                                This Month
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="setQuickDateRange('quarter')">
+                                This Quarter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    {% if data %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    {% if data.recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Client</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in data.recent_orders %}
+                                <tr>
+                                    <td><strong>#{{ order.id }}</strong></td>
+                                    <td>{{ order.client_name }}</td>
+                                    <td><span class="table-currency">${{ "%.2f"|format(order.total_amount) }}</span></td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'delivered' %}primary{% else %}warning{% endif %}">
+                                            {{ order.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ order.delivery_date.strftime('%m/%d') if order.delivery_date else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent orders found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Recent Expenses</h5>
+                </div>
+                <div class="card-body">
+                    {% if data.recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in data.recent_expenses %}
+                                <tr>
+                                    <td>{{ expense.description[:30] }}{% if expense.description|length > 30 %}...{% endif %}</td>
+                                    <td>{{ expense.category_name or 'Uncategorized' }}</td>
+                                    <td><span class="table-currency text-danger">${{ "%.2f"|format(expense.amount) }}</span></td>
+                                    <td>{{ expense.expense_date.strftime('%m/%d') if expense.expense_date else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent expenses found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Financial Insights -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Revenue by Category</h6>
+                </div>
+                <div class="card-body">
+                    {% if revenue_by_category %}
+                    <canvas id="revenueChart" height="200"
+                            data-labels='{{ revenue_by_category.keys() | list | tojson }}'
+                            data-values='{{ revenue_by_category.values() | list | tojson }}'></canvas>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No revenue data available for the selected period.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Expense Distribution</h6>
+                </div>
+                <div class="card-body">
+                    {% if expense_by_category %}
+                    <canvas id="expenseChart" height="200"
+                            data-labels='{{ expense_by_category.keys() | list | tojson }}'
+                            data-values='{{ expense_by_category.values() | list | tojson }}'></canvas>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">No expense data available for the selected period.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Summary -->
+    <div class="content-card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Financial Activity</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted">Latest Orders</h6>
+                    {% if recent_orders %}
+                    <div class="list-group list-group-flush">
+                        {% for order in recent_orders[:5] %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <span class="fw-medium">Order #{{ order.id }}</span>
+                                    <small class="text-muted d-block">{{ order.created_at.strftime('%m/%d/%Y %I:%M %p') }}</small>
+                                </div>
+                                <span class="text-success fw-medium">${{ "%.2f"|format(order.total_amount) }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent orders</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted">Latest Expenses</h6>
+                    {% if recent_expenses %}
+                    <div class="list-group list-group-flush">
+                        {% for expense in recent_expenses[:5] %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <span class="fw-medium">{{ expense.description[:30] }}{% if expense.description|length > 30 %}...{% endif %}</span>
+                                    <small class="text-muted d-block">{{ expense.expense_date.strftime('%m/%d/%Y') }}</small>
+                                </div>
+                                <span class="text-danger fw-medium">${{ "%.2f"|format(expense.amount) }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent expenses</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Financial Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm" method="POST" action="{{ url_for('export_finance_data') }}">
+                    <div class="mb-3">
+                        <label for="export_type" class="form-label">Data Type</label>
+                        <select class="form-select" id="export_type" name="export_type" required>
+                            <option value="all">All Financial Data</option>
+                            <option value="orders">Orders Only</option>
+                            <option value="expenses">Expenses Only</option>
+                            <option value="summary">Summary Report</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="export_start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="export_start_date" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label for="export_end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="export_end_date" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="export_format" class="form-label">Export Format</label>
+                        <select class="form-select" id="export_format" name="format" required>
+                            <option value="csv">CSV (Excel Compatible)</option>
+                            <option value="pdf">PDF Report</option>
+                            <option value="json">JSON Data</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="exportForm" class="btn btn-primary">
+                    <i class="bi bi-download me-2"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Quick date range functions
+    function setQuickDateRange(range) {
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        const today = new Date();
+        
+        switch(range) {
+            case 'today':
+                const todayStr = today.toISOString().split('T')[0];
+                startDate.value = todayStr;
+                endDate.value = todayStr;
+                break;
+            case 'week':
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - today.getDay());
+                startDate.value = weekStart.toISOString().split('T')[0];
+                endDate.value = today.toISOString().split('T')[0];
+                break;
+            case 'month':
+                const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                startDate.value = monthStart.toISOString().split('T')[0];
+                endDate.value = today.toISOString().split('T')[0];
+                break;
+            case 'quarter':
+                const quarter = Math.floor(today.getMonth() / 3);
+                const quarterStart = new Date(today.getFullYear(), quarter * 3, 1);
+                startDate.value = quarterStart.toISOString().split('T')[0];
+                endDate.value = today.toISOString().split('T')[0];
+                break;
+        }
+    }
+
+    // Initialize charts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Revenue Chart
+        const revenueCanvas = document.getElementById('revenueChart');
+        if (revenueCanvas) {
+            const revenueLabels = JSON.parse(revenueCanvas.getAttribute('data-labels') || '[]');
+            const revenueData = JSON.parse(revenueCanvas.getAttribute('data-values') || '[]');
+            
+            new Chart(revenueCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: revenueLabels,
+                    datasets: [{
+                        data: revenueData,
+                        backgroundColor: [
+                            '#0d6efd', '#6610f2', '#6f42c1', '#d63384', 
+                            '#dc3545', '#fd7e14', '#ffc107', '#198754'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Expense Chart
+        const expenseCanvas = document.getElementById('expenseChart');
+        if (expenseCanvas) {
+            const expenseLabels = JSON.parse(expenseCanvas.getAttribute('data-labels') || '[]');
+            const expenseData = JSON.parse(expenseCanvas.getAttribute('data-values') || '[]');
+            
+            new Chart(expenseCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: expenseLabels,
+                    datasets: [{
+                        label: 'Expenses',
+                        data: expenseData,
+                        backgroundColor: '#dc3545'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Set default date range to current month
+        setQuickDateRange('month');
+    });
+
+    // Form validation
+    const reportForm = document.querySelector('form[action*="generate_finance_report"]');
+    if (reportForm) {
+        reportForm.addEventListener('submit', function(e) {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                e.preventDefault();
+                alert('Start date cannot be after end date.');
+                return;
+            }
+        });
+    }
+
+    // Export form validation
+    const exportForm = document.getElementById('exportForm');
+    if (exportForm) {
+        exportForm.addEventListener('submit', function(e) {
+            const startDate = document.getElementById('export_start_date').value;
+            const endDate = document.getElementById('export_end_date').value;
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                e.preventDefault();
+                alert('Start date cannot be after end date.');
+                return;
+            }
+        });
+    }
+</script>
+{% endblock %}

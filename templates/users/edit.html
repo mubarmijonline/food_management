@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Food Management System{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-person-gear me-3"></i>Edit User</h1>
+                <p class="text-muted mb-0">Update user account information</p>
+            </div>
+            <div>
+                <a href="{{ url_for('user_management') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Users
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Form -->
+    <div class="content-card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>User Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}" enctype="multipart/form-data" id="editUserForm">
+                <!-- Personal Information -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3"><i class="bi bi-person me-2"></i>Personal Information</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required 
+                                   value="{{ user.name or '' }}" placeholder="Enter full name">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required 
+                                   value="{{ user.username or '' }}" placeholder="Enter username" onblur="checkUsername()">
+                            <div class="form-text" id="usernameHelp">Username must be unique and at least 3 characters</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3"><i class="bi bi-envelope me-2"></i>Contact Information</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email or '' }}" placeholder="Enter email address" onblur="checkEmail()">
+                            <div class="form-text" id="emailHelp">Email must be unique in the system</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="{{ user.mobile or '' }}" placeholder="Enter phone number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3"><i class="bi bi-shield-lock me-2"></i>Account Settings</h6>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="role" class="form-label">User Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required onchange="updateRoleInfo()">
+                                <option value="">Select Role</option>
+                                <option value="admin" {{ 'selected' if user.role == 'admin' else '' }}>Administrator</option>
+                                <option value="staff" {{ 'selected' if user.role == 'staff' else '' }}>Staff Member</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">New Password (Leave blank to keep current)</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       placeholder="Enter new password" onkeyup="checkPasswordStrength()">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                                    <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <div class="password-strength" id="passwordStrength"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Picture -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3"><i class="bi bi-image me-2"></i>Profile Picture</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="profile_image" class="form-label">Upload New Profile Picture</label>
+                            <input type="file" class="form-control" id="profile_image" name="profile_image" 
+                                   accept="image/*" onchange="previewImage(this)">
+                            <div class="form-text">Optional: Upload a profile picture (JPG, PNG, GIF - Max 2MB)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center">
+                            <div class="profile-preview" id="profilePreview">
+                                {% if user.profile_picture %}
+                                    <img src="{{ url_for('static', filename='uploads/profile/' + user.profile_picture) }}" alt="Current Profile">
+                                {% else %}
+                                    <div class="preview-placeholder">
+                                        <i class="bi bi-person-circle" style="font-size: 4rem; color: #ccc;"></i>
+                                        <p class="text-muted mt-2">No image selected</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role Information -->
+                <div id="roleInfo" class="alert" style="display: none;">
+                    <!-- Role-specific information will be displayed here -->
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Update User
+                    </button>
+                    <a href="{{ url_for('user_management') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Requirements (only shown if changing password) -->
+    <div class="content-card mt-4" id="passwordRequirements" style="display: none;">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Password Requirements</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li class="password-req" id="req-length"><i class="bi bi-x-circle text-danger me-2"></i>At least 8 characters</li>
+                        <li class="password-req" id="req-uppercase"><i class="bi bi-x-circle text-danger me-2"></i>At least one uppercase letter</li>
+                        <li class="password-req" id="req-lowercase"><i class="bi bi-x-circle text-danger me-2"></i>At least one lowercase letter</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li class="password-req" id="req-number"><i class="bi bi-x-circle text-danger me-2"></i>At least one number</li>
+                        <li class="password-req" id="req-special"><i class="bi bi-x-circle text-danger me-2"></i>At least one special character</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-preview {
+        width: 150px;
+        height: 150px;
+        border: 2px dashed #ddd;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .profile-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    
+    .preview-placeholder {
+        text-align: center;
+    }
+    
+    .password-strength {
+        height: 5px;
+        border-radius: 3px;
+        margin-top: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .password-strength.weak {
+        background-color: #dc3545;
+        width: 25%;
+    }
+    
+    .password-strength.fair {
+        background-color: #ffc107;
+        width: 50%;
+    }
+    
+    .password-strength.good {
+        background-color: #fd7e14;
+        width: 75%;
+    }
+    
+    .password-strength.strong {
+        background-color: #198754;
+        width: 100%;
+    }
+    
+    .password-req.valid i {
+        color: #198754 !important;
+    }
+    
+    .password-req.valid i::before {
+        content: "\f26b" !important; /* Bootstrap check-circle icon */
+    }
+    
+    .form-control.valid {
+        border-color: #198754;
+    }
+    
+    .form-control.invalid {
+        border-color: #dc3545;
+    }
+    
+    .role-info {
+        border-left: 4px solid var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let formValid = {
+        username: true, // Start as valid since we have existing data
+        email: true,
+        password: true, // Not required for editing
+    };
+
+    // Check username availability (excluding current user)
+    function checkUsername() {
+        const username = document.getElementById('username').value;
+        const helpText = document.getElementById('usernameHelp');
+        
+        if (username.length < 3) {
+            helpText.textContent = 'Username must be at least 3 characters';
+            helpText.className = 'form-text text-danger';
+            document.getElementById('username').classList.add('invalid');
+            formValid.username = false;
+            return;
+        }
+        
+        // Skip validation if username hasn't changed
+        if (username === '{{ user.username }}') {
+            helpText.textContent = 'Current username';
+            helpText.className = 'form-text text-muted';
+            document.getElementById('username').classList.remove('invalid', 'valid');
+            formValid.username = true;
+            return;
+        }
+        
+        fetch(`{{ url_for('check_username') }}?username=${username}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    helpText.textContent = 'Username is available';
+                    helpText.className = 'form-text text-success';
+                    document.getElementById('username').classList.remove('invalid');
+                    document.getElementById('username').classList.add('valid');
+                    formValid.username = true;
+                } else {
+                    helpText.textContent = 'Username is already taken';
+                    helpText.className = 'form-text text-danger';
+                    document.getElementById('username').classList.add('invalid');
+                    formValid.username = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking username:', error);
+            });
+    }
+
+    // Check email availability (excluding current user)
+    function checkEmail() {
+        const email = document.getElementById('email').value;
+        const helpText = document.getElementById('emailHelp');
+        
+        if (!email) {
+            helpText.textContent = 'Email is optional';
+            helpText.className = 'form-text text-muted';
+            document.getElementById('email').classList.remove('invalid', 'valid');
+            formValid.email = true;
+            return;
+        }
+        
+        if (!email.includes('@')) {
+            helpText.textContent = 'Please enter a valid email address';
+            helpText.className = 'form-text text-danger';
+            document.getElementById('email').classList.add('invalid');
+            formValid.email = false;
+            return;
+        }
+        
+        // Skip validation if email hasn't changed
+        if (email === '{{ user.email or "" }}') {
+            helpText.textContent = 'Current email';
+            helpText.className = 'form-text text-muted';
+            document.getElementById('email').classList.remove('invalid', 'valid');
+            formValid.email = true;
+            return;
+        }
+        
+        fetch(`{{ url_for('check_email') }}?email=${email}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    helpText.textContent = 'Email is available';
+                    helpText.className = 'form-text text-success';
+                    document.getElementById('email').classList.remove('invalid');
+                    document.getElementById('email').classList.add('valid');
+                    formValid.email = true;
+                } else {
+                    helpText.textContent = 'Email is already registered';
+                    helpText.className = 'form-text text-danger';
+                    document.getElementById('email').classList.add('invalid');
+                    formValid.email = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking email:', error);
+            });
+    }
+
+    // Check password strength (only if password is entered)
+    function checkPasswordStrength() {
+        const password = document.getElementById('password').value;
+        const strengthBar = document.getElementById('passwordStrength');
+        const requirementsDiv = document.getElementById('passwordRequirements');
+        
+        if (!password) {
+            strengthBar.className = 'password-strength';
+            requirementsDiv.style.display = 'none';
+            formValid.password = true; // Not required for editing
+            return;
+        }
+        
+        requirementsDiv.style.display = 'block';
+        
+        // Check requirements
+        const requirements = {
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /\d/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+        
+        // Update requirement indicators
+        Object.keys(requirements).forEach(req => {
+            const element = document.getElementById(`req-${req}`);
+            if (requirements[req]) {
+                element.classList.add('valid');
+            } else {
+                element.classList.remove('valid');
+            }
+        });
+        
+        // Calculate strength
+        const score = Object.values(requirements).filter(Boolean).length;
+        
+        strengthBar.className = 'password-strength';
+        if (score < 2) {
+            strengthBar.classList.add('weak');
+        } else if (score < 4) {
+            strengthBar.classList.add('fair');
+        } else if (score < 5) {
+            strengthBar.classList.add('good');
+        } else {
+            strengthBar.classList.add('strong');
+        }
+        
+        formValid.password = score >= 4 || !password; // Valid if strong or empty
+    }
+
+    // Toggle password visibility
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const icon = document.getElementById(fieldId + 'ToggleIcon');
+        
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            field.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+
+    // Preview uploaded image
+    function previewImage(input) {
+        const preview = document.getElementById('profilePreview');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Profile Preview">`;
+            };
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Update role information
+    function updateRoleInfo() {
+        const role = document.getElementById('role').value;
+        const roleInfo = document.getElementById('roleInfo');
+        
+        if (role === 'admin') {
+            roleInfo.innerHTML = `
+                <i class="bi bi-shield-check me-2"></i>
+                <strong>Administrator Role:</strong> This user will have full access to all system features including user management, 
+                financial reports, system settings, and all menu/order operations.
+            `;
+            roleInfo.className = 'alert alert-info role-info';
+            roleInfo.style.display = 'block';
+        } else if (role === 'staff') {
+            roleInfo.innerHTML = `
+                <i class="bi bi-person-badge me-2"></i>
+                <strong>Staff Role:</strong> This user will have access to menu management, order processing, and basic reporting. 
+                They will not have access to user management or sensitive financial data.
+            `;
+            roleInfo.className = 'alert alert-secondary role-info';
+            roleInfo.style.display = 'block';
+        } else {
+            roleInfo.style.display = 'none';
+        }
+    }
+
+    // Form submission validation
+    document.getElementById('editUserForm').addEventListener('submit', function(e) {
+        const requiredFields = ['full_name', 'username', 'role'];
+        const missingFields = requiredFields.filter(field => !document.getElementById(field).value.trim());
+        
+        if (missingFields.length > 0) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return;
+        }
+        
+        if (!Object.values(formValid).every(Boolean)) {
+            e.preventDefault();
+            alert('Please fix all validation errors before submitting.');
+            return;
+        }
+    });
+
+    // Initialize role info display
+    updateRoleInfo();
+</script>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t['refunds'] if t else 'Refunds' }} - {{ t['food_management_system'] if t else 'Food Management System' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="bi bi-arrow-return-left me-2"></i>
+                    {{ t['refund_management'] if t else 'Refund Management' }}
+                </h2>
+            </div>
+
+            <!-- Refunds Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ t['refund_requests'] if t else 'Refund Requests' }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if refunds %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{{ t['refund_id'] if t else 'Refund ID' }}</th>
+                                    <th>{{ t['order_number'] if t else 'Order Number' }}</th>
+                                    <th>{{ t['customer'] if t else 'Customer' }}</th>
+                                    <th>{{ t['refund_amount'] if t else 'Refund Amount' }}</th>
+                                    <th>{{ t['refund_type'] if t else 'Type' }}</th>
+                                    <th>{{ t['status'] if t else 'Status' }}</th>
+                                    <th>{{ t['request_date'] if t else 'Request Date' }}</th>
+                                    <th>{{ t['actions'] if t else 'Actions' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for refund in refunds %}
+                                <tr>
+                                    <td>#{{ refund.id }}</td>
+                                    <td>#{{ refund.order_number }}</td>
+                                    <td>{{ refund.customer_name }}</td>
+                                    <td>${{ "%.2f"|format(refund.refund_amount) }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if refund.refund_type == 'full' else 'secondary' }}">
+                                            {{ t[refund.refund_type + '_refund'] if t else refund.refund_type.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set status_colors = {
+                                            'pending': 'warning',
+                                            'approved': 'info',
+                                            'rejected': 'danger',
+                                            'processed': 'success'
+                                        } %}
+                                        <span class="badge bg-{{ status_colors.get(refund.refund_status, 'secondary') }}">
+                                            {{ t[refund.refund_status + '_status'] if t else refund.refund_status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ refund.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% if refund.refund_status == 'pending' %}
+                                                <button type="button" class="btn btn-sm btn-success approve-refund-btn" 
+                                                        data-refund-id="{{ refund.id }}">
+                                                    <i class="bi bi-check-lg"></i>
+                                                    {{ t['approve'] if t else 'Approve' }}
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger reject-refund-btn" 
+                                                        data-refund-id="{{ refund.id }}">
+                                                    <i class="bi bi-x-lg"></i>
+                                                    {{ t['reject'] if t else 'Reject' }}
+                                                </button>
+                                            {% elif refund.refund_status == 'approved' %}
+                                                <button type="button" class="btn btn-sm btn-primary process-refund-btn" 
+                                                        data-refund-id="{{ refund.id }}">
+                                                    <i class="bi bi-credit-card"></i>
+                                                    {{ t['process'] if t else 'Process' }}
+                                                </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-sm btn-outline-info view-refund-btn" 
+                                                    data-refund-id="{{ refund.id }}">
+                                                <i class="bi bi-eye"></i>
+                                                {{ t['view'] if t else 'View' }}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-arrow-return-left display-1 text-muted"></i>
+                        <h4 class="mt-3 text-muted">{{ t['no_refunds'] if t else 'No Refund Requests' }}</h4>
+                        <p class="text-muted">{{ t['no_refunds_message'] if t else 'There are no refund requests to display.' }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Refund Details Modal -->
+<div class="modal fade" id="refundDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ t['refund_details'] if t else 'Refund Details' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="refundDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Refund Modal -->
+<div class="modal fade" id="rejectRefundModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ t['reject_refund'] if t else 'Reject Refund' }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectRefundForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectionNotes" class="form-label">{{ t['rejection_reason'] if t else 'Rejection Reason' }}</label>
+                        <textarea class="form-control" id="rejectionNotes" name="notes" rows="3" 
+                                placeholder="{{ t['enter_rejection_reason'] if t else 'Enter reason for rejection...' }}" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {{ t['cancel'] if t else 'Cancel' }}
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        {{ t['reject_refund'] if t else 'Reject Refund' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRefundId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for approve buttons
+    document.querySelectorAll('.approve-refund-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const refundId = this.getAttribute('data-refund-id');
+            approveRefund(refundId);
+        });
+    });
+
+    // Add event listeners for reject buttons
+    document.querySelectorAll('.reject-refund-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const refundId = this.getAttribute('data-refund-id');
+            rejectRefund(refundId);
+        });
+    });
+
+    // Add event listeners for process buttons
+    document.querySelectorAll('.process-refund-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const refundId = this.getAttribute('data-refund-id');
+            processRefund(refundId);
+        });
+    });
+
+    // Add event listeners for view buttons
+    document.querySelectorAll('.view-refund-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const refundId = this.getAttribute('data-refund-id');
+            viewRefundDetails(refundId);
+        });
+    });
+});
+
+function approveRefund(refundId) {
+    if (confirm('{{ t["confirm_approve_refund"] if t else "Are you sure you want to approve this refund?" }}')) {
+        fetch(`/approve_refund/${refundId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('{{ t["error_occurred"] if t else "An error occurred" }}', 'danger');
+        });
+    }
+}
+
+function rejectRefund(refundId) {
+    currentRefundId = refundId;
+    const modal = new bootstrap.Modal(document.getElementById('rejectRefundModal'));
+    modal.show();
+}
+
+function processRefund(refundId) {
+    if (confirm('{{ t["confirm_process_refund"] if t else "Are you sure you want to process this refund? This action cannot be undone." }}')) {
+        fetch(`/process_refund/${refundId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('{{ t["error_occurred"] if t else "An error occurred" }}', 'danger');
+        });
+    }
+}
+
+function viewRefundDetails(refundId) {
+    // This would fetch and display detailed refund information
+    // For now, we'll show a simple message
+    document.getElementById('refundDetailsContent').innerHTML = `
+        <p>{{ t["refund_details_loading"] if t else "Loading refund details..." }}</p>
+    `;
+    const modal = new bootstrap.Modal(document.getElementById('refundDetailsModal'));
+    modal.show();
+}
+
+// Handle reject refund form submission
+document.getElementById('rejectRefundForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(`/reject_refund/${currentRefundId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('rejectRefundModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('{{ t["error_occurred"] if t else "An error occurred" }}', 'danger');
+    });
+});
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

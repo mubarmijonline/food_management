@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Dashboard') }} - {{ _('Food Management System') }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1><i class="bi bi-speedometer2 me-3"></i>{{ _('Dashboard') }}</h1>
+                <p class="text-muted mb-0">{{ _('Welcome') }} {{ session.name or session.username }}! {{ _("Here's your business overview.") }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="count-display">{{ stats.orders_today or 0 }}</h3>
+                        <p class="stats-label mb-0">{{ _('Orders Today') }}</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-receipt" style="font-size: 2rem; color: var(--accent-blue);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="large-number text-success">${{ "%.2f"|format(stats.revenue_today or 0) }}</h3>
+                        <p class="stats-label mb-0">{{ _('Revenue Today') }}</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-currency-dollar" style="font-size: 2rem; color: var(--success-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="count-display text-warning">{{ stats.pending_orders or 0 }}</h3>
+                        <p class="stats-label mb-0">{{ _('Pending Orders') }}</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-clock-history" style="font-size: 2rem; color: var(--warning-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="count-display">{{ stats.menu_items or 0 }}</h3>
+                        <p class="stats-label mb-0">{{ _('Menu Items') }}</p>
+                    </div>
+                    <div class="stats-icon">
+                        <i class="bi bi-card-list" style="font-size: 2rem; color: var(--info-color);"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Orders -->
+        <div class="col-lg-8 mb-4">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>{{ _('Recent Orders') }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{{ _('Order ID') }}</th>
+                                    <th>{{ _('Client') }}</th>
+                                    <th>{{ _('Amount') }}</th>
+                                    <th>{{ _('Status') }}</th>
+                                    <th>{{ _('Date') }}</th>
+                                    <th>{{ _('Action') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>
+                                        <strong>#{{ order.id }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ order.client_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ order.client_mobile }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="currency-display">${{ "%.2f"|format(order.total_amount) }}</span>
+                                    </td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                            <span class="badge bg-warning">{{ _('Pending') }}</span>
+                                        {% elif order.status == 'completed' %}
+                                            <span class="badge bg-success">{{ _('Completed') }}</span>
+                                        {% elif order.status == 'delivered' %}
+                                            <span class="badge bg-info">{{ _('Delivered') }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {{ order.created_at.strftime('%m/%d/%Y') }}
+                                            <br>
+                                            <small class="text-muted">{{ order.created_at.strftime('%I:%M %p') }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('view_order', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: var(--text-muted);"></i>
+                        <p class="text-muted mt-3 mb-0">{{ _('No recent orders found') }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if recent_orders %}
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('orders') }}" class="btn btn-primary">
+                        <i class="bi bi-eye me-2"></i>{{ _('View All Orders') }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>{{ _('Quick Actions') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('create_order') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>{{ _('New Order') }}
+                        </a>
+                        
+                        {% if session.role == 'admin' %}
+                        <a href="{{ url_for('add_menu_item') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-square me-2"></i>{{ _('Add Menu Item') }}
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('add_expense') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-wallet2 me-2"></i>{{ _('Add Expense') }}
+                        </a>
+                        
+                        <a href="{{ url_for('finance_reports') }}" class="btn btn-outline-info">
+                            <i class="bi bi-graph-up me-2"></i>{{ _('View Reports') }}
+                        </a>
+                        
+                        {% if session.role == 'admin' %}
+                        <a href="{{ url_for('send_notification') }}" class="btn btn-outline-warning">
+                            <i class="bi bi-megaphone me-2"></i>{{ _('Send Notification') }}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Preview -->
+            {% if stats.unread_notifications and stats.unread_notifications > 0 %}
+            <div class="content-card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-bell me-2"></i>{{ _('Notifications') }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        {{ _('You have') }} <strong>{{ stats.unread_notifications }}</strong> {{ _('unread notification') }}{{ 's' if stats.unread_notifications != 1 else '' }}.
+                        <a href="{{ url_for('notifications') }}" class="alert-link">{{ _('View all') }}</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="row">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>{{ _('System Information') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-check" style="font-size: 1.5rem; color: var(--success-color);"></i>
+                                <div class="ms-3">
+                                    <strong>{{ _('User Role') }}</strong>
+                                    <br>
+                                    <span class="badge bg-{{ 'primary' if session.role == 'admin' else 'secondary' }}">
+                                        {{ session.role.title() }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-clock" style="font-size: 1.5rem; color: var(--info-color);"></i>
+                                <div class="ms-3">
+                                    <strong>{{ _('Current Time') }}</strong>
+                                    <br>
+                                    <span id="current-time"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar3" style="font-size: 1.5rem; color: var(--warning-color);"></i>
+                                <div class="ms-3">
+                                    <strong>{{ _("Today's Date") }}</strong>
+                                    <br>
+                                    <span>August 20, 2025</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-shield-check" style="font-size: 1.5rem; color: var(--success-color);"></i>
+                                <div class="ms-3">
+                                    <strong>{{ _('System Status') }}</strong>
+                                    <br>
+                                    <span class="badge bg-success">{{ _('Online') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        document.getElementById('current-time').textContent = timeString;
+    }
+    
+    // Update time every second
+    setInterval(updateTime, 1000);
+    updateTime(); // Initial call
+    
+    // Add moment.js like functionality for date formatting
+    function moment() {
+        return {
+            format: function(format) {
+                const now = new Date();
+                const options = { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                };
+                return now.toLocaleDateString('en-US', options);
+            }
+        };
+    }
+</script>
+{% endblock %}
